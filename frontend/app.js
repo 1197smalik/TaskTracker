@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE = 'http://localhost:8000/api';
+const DEFAULT_API_BASE = 'http://127.0.0.1:8000/api';
 
 const state = {
   apiBase: DEFAULT_API_BASE,
@@ -253,27 +253,33 @@ function closeModal() {
 }
 
 async function createProject(data) {
+  const payload = {
+    name: data.name,
+    description: data.description,
+    members: [],
+  };
+  if (data.owner) {
+    payload.owner = Number(data.owner);
+  }
   await requestJson('/projects/', {
     method: 'POST',
-    body: JSON.stringify({
-      name: data.name,
-      description: data.description,
-      owner: Number(data.owner) || 1,
-      members: [],
-    }),
+    body: JSON.stringify(payload),
   });
   await loadData();
 }
 
 async function updateProject(id, data) {
+  const payload = {
+    name: data.name,
+    description: data.description,
+    members: [],
+  };
+  if (data.owner) {
+    payload.owner = Number(data.owner);
+  }
   await requestJson(`/projects/${id}/`, {
     method: 'PUT',
-    body: JSON.stringify({
-      name: data.name,
-      description: data.description,
-      owner: Number(data.owner) || 1,
-      members: [],
-    }),
+    body: JSON.stringify(payload),
   });
   await loadData();
 }
@@ -326,7 +332,6 @@ function openProjectModal(mode, project) {
     fields: [
       { label: 'Project name', name: 'name', value: project?.name || '' },
       { label: 'Description', name: 'description', type: 'textarea', value: project?.description || '' },
-      { label: 'Owner ID', name: 'owner', value: project?.owner || 1 },
     ],
     onSubmit: async (data) => {
       if (mode === 'create') {
