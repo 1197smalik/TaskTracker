@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TaskTracker | Jira-Style</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">TT</div>
+          <div>
+            <div class="brand-title">TaskTracker</div>
+            <div class="brand-sub">Delivery HQ</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="nav-item is-active" data-view="dashboard">Dashboard</button>
+          <button class="nav-item" data-view="projects">Projects</button>
+          <button class="nav-item" data-view="tasks">Tasks</button>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="status-dot"></div>
+          <div>
+            <div class="status-title">API</div>
+            <div class="status-text" id="apiStatus">Checking...</div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <div class="eyebrow">Workspace</div>
+            <h1 id="viewTitle">Dashboard</h1>
+          </div>
+          <div class="topbar-actions">
+            <input id="searchInput" class="search" placeholder="Search tasks" />
+            <button class="primary" id="newTaskBtn">New Task</button>
+            
+          </div>
+        </header>
+
+        <section class="panel" id="dashboardView">
+          <div class="panel-header">
+            <div>
+              <h2>Delivery overview</h2>
+              <p>Track everything shipping this sprint.</p>
+            </div>
+            <button class="ghost" id="refreshBtn">Refresh</button>
+          </div>
+          <div class="metrics">
+            <div class="metric">
+              <div class="metric-label">Total Projects</div>
+              <div class="metric-value" id="metricProjects">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Total Tasks</div>
+              <div class="metric-value" id="metricTasks">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">In Progress</div>
+              <div class="metric-value" id="metricInProgress">0</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel hidden" id="projectsView">
+          <div class="panel-header">
+            <div>
+              <h2>Projects</h2>
+              <p>Organize workstreams and ownership.</p>
+            </div>
+            <button class="primary" id="newProjectBtn">New Project</button>
+          </div>
+          <div class="card-grid" id="projectsGrid"></div>
+        </section>
+
+        <section class="panel hidden" id="tasksView">
+          <div class="panel-header">
+            <div>
+              <h2>Tasks</h2>
+              <p>Run boards like Jira with clear status lanes.</p>
+            </div>
+            <div class="panel-actions">
+              <select id="projectFilter"></select>
+              <button class="ghost" id="clearFilter">Clear filter</button>
+            </div>
+          </div>
+          <div class="board" id="taskBoard"></div>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal hidden" id="modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="modalTitle">New</h3>
+          <button class="icon" id="closeModal">x</button>
+        </div>
+        <form id="modalForm">
+          <div class="form-grid" id="modalFields"></div>
+          <div class="modal-actions">
+            <button class="ghost" type="button" id="cancelModal">Cancel</button>
+            <button class="primary" type="submit" id="saveModal">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
