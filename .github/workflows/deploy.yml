@@ -1,0 +1,32 @@
+name: Deploy to home server
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Pull latest code
+        run: |
+          cd /home/shubham/apps/TaskTracker
+          git fetch origin main
+          git reset --hard origin/main
+
+      - name: Install deps
+        run: |
+          cd /home/shubham/apps/TaskTracker
+          . .venv/bin/activate
+          pip install -U pip wheel
+          pip install -r requirements.txt
+
+      - name: Django migrate
+        run: |
+          cd /home/shubham/apps/TaskTracker
+          /home/shubham/apps/TaskTracker/.venv/bin/python manage.py migrate --noinput
+
+      - name: Restart services
+        run: |
+          sudo systemctl restart tasktracker-django
+          sudo systemctl restart tasktracker-streamlit
