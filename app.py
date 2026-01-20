@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-API_BASE = "http://localhost:8001/api/"
+API_BASE = "http://localhost:8000/api/"
 
 st.title("TaskTracker - Enterprise Task Management")
 
