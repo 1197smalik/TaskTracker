@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE = 'http://127.0.0.1:8000/api';
+const DEFAULT_API_BASE = 'https://api-tasktracker.shubhammalik.com/api';
 
 const state = {
   apiBase: DEFAULT_API_BASE,
