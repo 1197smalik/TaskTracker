@@ -7,10 +7,11 @@ All story work is governed by:
 - `_bmad-output/planning-artifacts/11-autonomous-coding-loop/codex-execution-workflow.md`
 
 ## One Story At A Time
-- Implement exactly one story per Codex run, per task, and per branch.
+- Implement exactly one TM story per Codex run, per task, and per branch.
 - Branch naming format: `story/TM-###-short-title`.
 - Do not batch multiple stories because they look related.
 - Do not add speculative code for later stories.
+- Do not implement adjacent stories in the same run.
 
 ## Required Pre-Implementation Check
 Before editing code for a story, confirm:
@@ -36,6 +37,7 @@ A story is not done until all of the following are true:
 - contract/doc updates were included where required
 - no unrelated files were modified
 - PR notes include risk and rollback assessment
+- validation evidence exists before commit
 
 ## Retry Limit
 - Attempt 1: implement the story directly.

@@ -15,6 +15,7 @@ Use `GPT-5.4-mini` for:
 - repository scaffolding and placeholder files
 - narrow governance updates
 - simple validation or inventory checks
+- simple tests and lint fixes
 
 Do not use `GPT-5.4-mini` for:
 - migration design
@@ -24,7 +25,8 @@ Do not use `GPT-5.4-mini` for:
 
 ## `GPT-5.4`
 Use `GPT-5.4` for:
-- standard single-story implementation work
+- normal backend implementation
+- normal frontend implementation
 - focused backend, frontend, infrastructure, or test changes
 - stories that require reading a limited set of planning artifacts
 - stories with moderate validation and rollback reasoning
@@ -33,9 +35,14 @@ Use `GPT-5.4` for:
 
 ## `GPT-5.5`
 Use `GPT-5.5` for:
+- auth work
+- RBAC work
+- workflow engine work
+- security work
+- complex debugging
+- production hardening
 - stories that span multiple architectural concerns within one approved scope
 - migration-sensitive or rollback-sensitive work
-- security-critical or workflow-engine-critical changes
 - stories with unclear edge cases or conflicting constraints
 - tasks that need deeper synthesis across planning, validation, and readiness documents
 

@@ -5,7 +5,7 @@ This repository is entering implementation from a BMAD planning baseline. Agents
 
 ## Mandatory Inputs For Every Future Task
 Every future Codex task must explicitly reference:
-- exactly one story id from `_bmad-output/planning-artifacts/09-story-decomposition/story-map.md` or an equivalent repository-approved story identifier
+- exactly one story id from `_bmad-output/planning-artifacts/09-story-decomposition/story-map.md`
 - the relevant planning artifact(s) that govern the change
 - the validation commands that prove the story is complete
 
@@ -34,7 +34,7 @@ Implementation must preserve these decisions from the planning package:
 - Docker Compose is the initial runtime model; design remains Kubernetes-ready.
 
 ## Story Execution Rules
-- Execute exactly one story at a time for each Codex run.
+- Execute exactly one TM story at a time for each Codex run.
 - Use one branch per story: `story/TM-###-short-title`.
 - Do not combine unrelated stories, opportunistic refactors, or speculative scaffolding.
 - Do not implement beyond the active story's acceptance criteria.

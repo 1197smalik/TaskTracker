@@ -3,21 +3,22 @@
 ## Purpose
 Validation is a merge gate, not a cleanup step. Run only the commands relevant to the story, plus any broader gates required by the changed area.
 
-## Baseline Story Controls
-- Story acceptance and validation source: `_bmad-output/planning-artifacts/09-story-decomposition/story-map.md`
-- Global gate source: `_bmad-output/planning-artifacts/12-validation-gates/validation-gates.md`
-
 ## Documentation Validation
-Documentation-only stories must still validate repository governance changes.
+When `make validate-docs` does not exist, use the repository docs checks below.
 
 Commands:
 ```bash
-test -f AGENTS.md
+find docs -type f | sort
+test -f docs/PLANNING_TO_IMPLEMENTATION_BOUNDARY.md
 test -f docs/STORY_EXECUTION_RULES.md
 test -f docs/MODEL_SELECTION_POLICY.md
 test -f docs/VALIDATION_COMMANDS.md
-git diff --stat
+git diff --check
 ```
+
+## Baseline Story Controls
+- Story acceptance and validation source: `_bmad-output/planning-artifacts/09-story-decomposition/story-map.md`
+- Global gate source: `_bmad-output/planning-artifacts/12-validation-gates/validation-gates.md`
 
 Blocking documentation failures:
 - missing required governance file
