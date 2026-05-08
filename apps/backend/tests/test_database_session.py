@@ -21,8 +21,8 @@ def test_settings_read_database_url_from_environment(monkeypatch: pytest.MonkeyP
     assert settings.database_url == database_url
 
 
-def test_base_metadata_starts_without_domain_tables() -> None:
-    assert Base.metadata.tables == {}
+def test_base_metadata_registers_known_domain_tables() -> None:
+    assert "users" in Base.metadata.tables
 
 
 def test_session_factory_uses_safe_sqlite_settings(tmp_path: Path) -> None:
