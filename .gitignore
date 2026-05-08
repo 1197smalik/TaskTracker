@@ -1,0 +1,31 @@
+# BMAD generated working directories
+_bmad/
+.agents/
+_bmad-output/
+
+# OS files
+.DS_Store
+
+# Python
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+coverage/
+playwright-report/
+
+# Env and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
