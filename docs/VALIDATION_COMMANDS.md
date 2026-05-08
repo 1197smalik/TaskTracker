@@ -7,6 +7,24 @@ Validation is a merge gate, not a cleanup step. Run only the commands relevant t
 - Story acceptance and validation source: `_bmad-output/planning-artifacts/09-story-decomposition/story-map.md`
 - Global gate source: `_bmad-output/planning-artifacts/12-validation-gates/validation-gates.md`
 
+## Documentation Validation
+Documentation-only stories must still validate repository governance changes.
+
+Commands:
+```bash
+test -f AGENTS.md
+test -f docs/STORY_EXECUTION_RULES.md
+test -f docs/MODEL_SELECTION_POLICY.md
+test -f docs/VALIDATION_COMMANDS.md
+git diff --stat
+```
+
+Blocking documentation failures:
+- missing required governance file
+- execution rules that allow multi-story runs
+- validation categories omitted for a changed control document
+- repository-control change that quietly introduces implementation files
+
 ## Backend Gates
 Source:
 - `_bmad-output/planning-artifacts/12-validation-gates/backend-validation.md`

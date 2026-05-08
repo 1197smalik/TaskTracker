@@ -31,13 +31,14 @@ Summary:
 
 ## Required Task Header For Future Codex Work
 Every implementation task must begin with:
-- `Story:` `TM-### Title`
+- `Story:` one story id and title only
 - `Relevant Artifacts:` exact planning artifact paths
 - `Dependencies Confirmed:` `yes` or the blocking dependency
 - `Validation:` exact commands to run
 
 ## Scope Control Rules
 - No implementation without a story id.
+- Exactly one story per Codex run.
 - No mixed-story branches.
 - No schema migration in a non-migration story unless the story explicitly requires it.
 - No frontend capability inference from role names.
@@ -52,6 +53,7 @@ A story is complete only when:
 - tests and docs were updated where needed
 - risk and rollback notes were written
 - the branch remains limited to one story
+- the model used matched the complexity policy in `docs/MODEL_SELECTION_POLICY.md`
 
 ## Escalation Conditions
 Escalate instead of guessing when:

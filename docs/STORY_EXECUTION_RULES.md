@@ -7,7 +7,7 @@ All story work is governed by:
 - `_bmad-output/planning-artifacts/11-autonomous-coding-loop/codex-execution-workflow.md`
 
 ## One Story At A Time
-- Implement exactly one story per task and per branch.
+- Implement exactly one story per Codex run, per task, and per branch.
 - Branch naming format: `story/TM-###-short-title`.
 - Do not batch multiple stories because they look related.
 - Do not add speculative code for later stories.

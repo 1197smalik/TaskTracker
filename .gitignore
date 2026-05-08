@@ -1,7 +1,8 @@
 # BMAD generated working directories
 _bmad/
 .agents/
-_bmad-output/
+_bmad-output/implementation-artifacts/
+_bmad-output/test-artifacts/
 
 # OS files
 .DS_Store

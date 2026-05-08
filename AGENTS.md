@@ -5,7 +5,7 @@ This repository is entering implementation from a BMAD planning baseline. Agents
 
 ## Mandatory Inputs For Every Future Task
 Every future Codex task must explicitly reference:
-- one story id from `_bmad-output/planning-artifacts/09-story-decomposition/story-map.md`
+- exactly one story id from `_bmad-output/planning-artifacts/09-story-decomposition/story-map.md` or an equivalent repository-approved story identifier
 - the relevant planning artifact(s) that govern the change
 - the validation commands that prove the story is complete
 
@@ -34,7 +34,7 @@ Implementation must preserve these decisions from the planning package:
 - Docker Compose is the initial runtime model; design remains Kubernetes-ready.
 
 ## Story Execution Rules
-- Execute exactly one story at a time.
+- Execute exactly one story at a time for each Codex run.
 - Use one branch per story: `story/TM-###-short-title`.
 - Do not combine unrelated stories, opportunistic refactors, or speculative scaffolding.
 - Do not implement beyond the active story's acceptance criteria.
@@ -61,3 +61,11 @@ Stop and escalate when:
 
 ## Non-Goals During Governance Setup
 Until the next story begins, do not add application implementation for FastAPI, React features, database models, Docker runtime files, or tests beyond documentation and repository control artifacts.
+
+## Model Selection
+Choose the model based on story complexity:
+- Use `GPT-5.4-mini` for narrow documentation-only, file-scaffolding, or simple repository-governance updates.
+- Use `GPT-5.4` for normal story execution involving focused reasoning across a small set of files or planning artifacts.
+- Use `GPT-5.5` for cross-cutting, ambiguous, migration-sensitive, or higher-risk stories that require deeper reasoning.
+
+Detailed model guidance is defined in `docs/MODEL_SELECTION_POLICY.md`.
