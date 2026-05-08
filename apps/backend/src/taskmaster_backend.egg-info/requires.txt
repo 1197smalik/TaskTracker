@@ -1,0 +1,6 @@
+fastapi<1.0,>=0.115
+
+[dev]
+mypy>=1.10
+pytest>=8.0
+ruff>=0.6.0

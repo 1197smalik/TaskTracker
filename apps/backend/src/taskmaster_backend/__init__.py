@@ -1,4 +1,4 @@
-"""TaskMaster backend package foundation."""
+"""TaskMaster backend package."""
 
 __all__ = ["__version__"]
 

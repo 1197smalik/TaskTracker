@@ -5,10 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "taskmaster-backend"
 version = "0.1.0"
-description = "TaskMaster backend foundation package."
+description = "TaskMaster backend FastAPI skeleton."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "fastapi>=0.115,<1.0",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -17,7 +19,11 @@ dev = [
     "ruff>=0.6.0",
 ]
 
+[tool.setuptools.package-dir]
+"" = "src"
+
 [tool.setuptools.packages.find]
+where = ["src"]
 include = ["taskmaster_backend*"]
 
 [tool.pytest.ini_options]
@@ -37,6 +43,5 @@ select = [
 
 [tool.mypy]
 python_version = "3.11"
-files = ["taskmaster_backend", "tests"]
+files = ["src/taskmaster_backend", "tests"]
 strict = true
-
