@@ -14,6 +14,9 @@ from taskmaster_backend.identity.tokens import (
     decode_access_token,
 )
 
+TEST_JWT_SECRET = "test-secret-value-with-32-plus-bytes"
+WRONG_TEST_JWT_SECRET = "wrong-secret-value-with-32-plus-bytes"
+
 
 def test_create_access_token_includes_required_claims(monkeypatch: pytest.MonkeyPatch) -> None:
     _set_test_jwt_settings(monkeypatch, ttl_seconds=900)
@@ -37,7 +40,7 @@ def test_decode_access_token_rejects_expired_token(monkeypatch: pytest.MonkeyPat
             "iss": "test-issuer",
             "aud": "test-audience",
         },
-        "test-secret",
+        TEST_JWT_SECRET,
         algorithm="HS256",
     )
 
@@ -62,7 +65,7 @@ def test_decode_access_token_rejects_token_with_invalid_signature(
             "iss": "test-issuer",
             "aud": "test-audience",
         },
-        "wrong-secret",
+        WRONG_TEST_JWT_SECRET,
         algorithm="HS256",
     )
 
@@ -81,7 +84,7 @@ def test_decode_access_token_rejects_missing_subject_claim(
             "iss": "test-issuer",
             "aud": "test-audience",
         },
-        "test-secret",
+        TEST_JWT_SECRET,
         algorithm="HS256",
     )
 
@@ -90,7 +93,7 @@ def test_decode_access_token_rejects_missing_subject_claim(
 
 
 def _set_test_jwt_settings(monkeypatch: pytest.MonkeyPatch, *, ttl_seconds: int) -> None:
-    monkeypatch.setenv("TASKMASTER_JWT_SECRET", "test-secret")
+    monkeypatch.setenv("TASKMASTER_JWT_SECRET", TEST_JWT_SECRET)
     monkeypatch.setenv("TASKMASTER_JWT_ALGORITHM", "HS256")
     monkeypatch.setenv("TASKMASTER_JWT_ISSUER", "test-issuer")
     monkeypatch.setenv("TASKMASTER_JWT_AUDIENCE", "test-audience")
