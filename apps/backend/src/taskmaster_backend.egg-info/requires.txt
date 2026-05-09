@@ -1,4 +1,8 @@
+alembic<2.0,>=1.13
 fastapi<1.0,>=0.115
+PyJWT<3.0,>=2.9
+sqlalchemy<3.0,>=2.0
+uvicorn<1.0,>=0.30
 
 [dev]
 mypy>=1.10
