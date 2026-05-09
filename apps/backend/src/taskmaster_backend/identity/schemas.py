@@ -35,3 +35,11 @@ class RefreshTokenResponse(BaseModel):
     access_token: str
     token_type: Literal["bearer"]
     expires_in: int
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: str = Field(min_length=1)
+
+
+class LogoutResponse(BaseModel):
+    revoked: bool

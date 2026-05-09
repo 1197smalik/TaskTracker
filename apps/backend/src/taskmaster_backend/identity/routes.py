@@ -11,6 +11,8 @@ from taskmaster_backend.identity.schemas import (
     ApiErrorResponse,
     LoginRequest,
     LoginResponse,
+    LogoutRequest,
+    LogoutResponse,
     RefreshTokenRequest,
     RefreshTokenResponse,
 )
@@ -69,6 +71,36 @@ def refresh_token(_request: RefreshTokenRequest) -> JSONResponse:
         message="Refresh token exchange is not available yet.",
         details={
             "reason": "Refresh token validation and rotation are intentionally deferred.",
+        },
+        correlation_id=str(uuid4()),
+    )
+    return JSONResponse(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        content=error.model_dump(),
+    )
+
+
+@router.post(
+    "/logout",
+    response_model=LogoutResponse,
+    responses={
+        status.HTTP_501_NOT_IMPLEMENTED: {
+            "model": ApiErrorResponse,
+            "description": "Logout and token revocation are defined but not implemented yet.",
+        },
+    },
+    summary="Logout and revoke refresh token",
+    description=(
+        "Versioned logout endpoint contract. Refresh token lookup and revocation "
+        "are intentionally deferred to later stories."
+    ),
+)
+def logout(_request: LogoutRequest) -> JSONResponse:
+    error = ApiErrorResponse(
+        error_code="logout_not_implemented",
+        message="Logout and token revocation are not available yet.",
+        details={
+            "reason": "Refresh token lookup and revocation are intentionally deferred.",
         },
         correlation_id=str(uuid4()),
     )
