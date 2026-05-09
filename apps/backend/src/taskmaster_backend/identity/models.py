@@ -124,3 +124,30 @@ class Role(Base):
         default=utc_now,
         onupdate=utc_now,
     )
+
+
+class Permission(Base):
+    """Stable RBAC permission identifier owned by the Identity domain."""
+
+    __tablename__ = "permissions"
+    __table_args__ = (
+        UniqueConstraint("code", name="uq_permissions_code"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+    code: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        onupdate=utc_now,
+    )
