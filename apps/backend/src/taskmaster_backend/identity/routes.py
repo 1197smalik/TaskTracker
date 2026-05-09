@@ -7,7 +7,13 @@ from uuid import uuid4
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
-from taskmaster_backend.identity.schemas import ApiErrorResponse, LoginRequest, LoginResponse
+from taskmaster_backend.identity.schemas import (
+    ApiErrorResponse,
+    LoginRequest,
+    LoginResponse,
+    RefreshTokenRequest,
+    RefreshTokenResponse,
+)
 
 router = APIRouter(prefix="/auth", tags=["identity"])
 
@@ -33,6 +39,36 @@ def login(_request: LoginRequest) -> JSONResponse:
         message="Authentication is not available yet.",
         details={
             "reason": "Credential verification is intentionally deferred to later stories.",
+        },
+        correlation_id=str(uuid4()),
+    )
+    return JSONResponse(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        content=error.model_dump(),
+    )
+
+
+@router.post(
+    "/refresh",
+    response_model=RefreshTokenResponse,
+    responses={
+        status.HTTP_501_NOT_IMPLEMENTED: {
+            "model": ApiErrorResponse,
+            "description": "Refresh token exchange is defined but not implemented yet.",
+        },
+    },
+    summary="Exchange refresh token",
+    description=(
+        "Versioned refresh token endpoint contract. Refresh token validation, rotation, "
+        "and access token issuance are intentionally deferred to later stories."
+    ),
+)
+def refresh_token(_request: RefreshTokenRequest) -> JSONResponse:
+    error = ApiErrorResponse(
+        error_code="refresh_token_not_implemented",
+        message="Refresh token exchange is not available yet.",
+        details={
+            "reason": "Refresh token validation and rotation are intentionally deferred.",
         },
         correlation_id=str(uuid4()),
     )
