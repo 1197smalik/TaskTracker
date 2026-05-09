@@ -42,3 +42,27 @@ class User(Base):
         default=utc_now,
         onupdate=utc_now,
     )
+
+
+class Organization(Base):
+    """Top-level organization boundary for identity, access, and tenancy scoping."""
+
+    __tablename__ = "organizations"
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        onupdate=utc_now,
+    )

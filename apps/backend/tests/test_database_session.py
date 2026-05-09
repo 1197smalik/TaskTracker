@@ -22,6 +22,7 @@ def test_settings_read_database_url_from_environment(monkeypatch: pytest.MonkeyP
 
 
 def test_base_metadata_registers_known_domain_tables() -> None:
+    assert "organizations" in Base.metadata.tables
     assert "users" in Base.metadata.tables
 
 
