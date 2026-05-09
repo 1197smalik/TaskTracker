@@ -96,3 +96,31 @@ class Workspace(Base):
         default=utc_now,
         onupdate=utc_now,
     )
+
+
+class Role(Base):
+    """Scoped RBAC role definition owned by the Identity domain."""
+
+    __tablename__ = "roles"
+    __table_args__ = (
+        UniqueConstraint("name", "scope", name="uq_roles_name_scope"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    scope: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        onupdate=utc_now,
+    )
