@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from functools import lru_cache
 
-DEFAULT_DATABASE_URL = "sqlite+pysqlite:///:memory:"
+DEFAULT_DATABASE_URL = "sqlite+pysqlite:///./taskmaster.db"
 
 
 @dataclass(frozen=True)
