@@ -73,6 +73,12 @@ class WorkItemUpdateRequest(BaseModel):
         return self
 
 
+class WorkflowTransitionRequest(BaseModel):
+    expected_version: int = Field(ge=1)
+    target_state_id: str = Field(min_length=1, max_length=36)
+    source_state_id: str | None = Field(default=None, max_length=36)
+
+
 class WorkItemResponse(BaseModel):
     id: str
     project_id: str
@@ -124,3 +130,10 @@ class WorkItemListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class WorkflowTransitionResponse(BaseModel):
+    work_item: WorkItemResponse
+    transition_id: str
+    source_state_id: str
+    target_state_id: str

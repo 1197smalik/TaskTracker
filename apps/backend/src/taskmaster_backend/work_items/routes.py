@@ -15,16 +15,24 @@ from taskmaster_backend.work_items.repository import (
     get_project,
     get_project_work_item,
     list_project_work_items,
+    transition_work_item,
     update_work_item,
     validate_parent_relationship,
 )
 from taskmaster_backend.work_items.schemas import (
+    WorkflowTransitionRequest,
+    WorkflowTransitionResponse,
     WorkItemApiErrorResponse,
     WorkItemCreateRequest,
     WorkItemListParams,
     WorkItemListResponse,
     WorkItemResponse,
     WorkItemUpdateRequest,
+)
+from taskmaster_backend.workflows.validator import (
+    WorkflowTransitionValidationRequest,
+    WorkflowTransitionValidationResult,
+    validate_work_item_transition,
 )
 
 router = APIRouter(prefix="/projects/{project_id}/work-items", tags=["work-items"])
@@ -60,6 +68,23 @@ def _invalid_parent_error(reason: str) -> WorkItemApiErrorResponse:
         error_code="invalid_work_item_parent",
         message="Work item parent relationship is invalid.",
         details={"reason": reason},
+        correlation_id=str(uuid4()),
+    )
+
+
+def _invalid_transition_error(
+    result: WorkflowTransitionValidationResult,
+) -> WorkItemApiErrorResponse:
+    details: dict[str, str] = {}
+    if result.error_code is not None:
+        details["reason"] = result.error_code
+    if result.rule_type is not None:
+        details["rule_type"] = result.rule_type
+
+    return WorkItemApiErrorResponse(
+        error_code="invalid_work_item_transition",
+        message="Work item workflow transition is invalid.",
+        details=details,
         correlation_id=str(uuid4()),
     )
 
@@ -245,3 +270,79 @@ def update_project_work_item_route(
 
     updated_work_item = update_work_item(session, work_item, request)
     return WorkItemResponse.from_model(updated_work_item)
+
+
+@router.post(
+    "/{work_item_id}/transition",
+    response_model=WorkflowTransitionResponse,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "model": WorkItemApiErrorResponse,
+            "description": "Work item was not found or is inaccessible.",
+        },
+        status.HTTP_409_CONFLICT: {
+            "model": WorkItemApiErrorResponse,
+            "description": "Work item version does not match the expected version.",
+        },
+        status.HTTP_400_BAD_REQUEST: {
+            "model": WorkItemApiErrorResponse,
+            "description": "Workflow transition failed validation.",
+        },
+    },
+    summary="Transition work item",
+    description=(
+        "Validate and apply a project-scoped workflow transition to a work item. "
+        "This updates only the current workflow state and work item version. Audit "
+        "logging, event dispatch, automation, notifications, and activity feed "
+        "records are handled by later stories."
+    ),
+)
+def transition_project_work_item_route(
+    project_id: str,
+    work_item_id: str,
+    request: WorkflowTransitionRequest,
+    session: Session = Depends(get_db_session),
+) -> WorkflowTransitionResponse | JSONResponse:
+    work_item = get_project_work_item(session, project_id, work_item_id)
+    if work_item is None:
+        error = _work_item_not_found_error()
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=error.model_dump(),
+        )
+
+    if work_item.version != request.expected_version:
+        error = _work_item_version_conflict_error(work_item.version)
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content=error.model_dump(),
+        )
+
+    validation_result = validate_work_item_transition(
+        session,
+        WorkflowTransitionValidationRequest(
+            project_id=project_id,
+            work_item_id=work_item_id,
+            target_state_id=request.target_state_id,
+            source_state_id=request.source_state_id,
+        ),
+    )
+    if not validation_result.allowed or validation_result.transition_id is None:
+        error = _invalid_transition_error(validation_result)
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=error.model_dump(),
+        )
+
+    source_state_id = work_item.current_state_id
+    updated_work_item = transition_work_item(
+        session,
+        work_item,
+        request.target_state_id,
+    )
+    return WorkflowTransitionResponse(
+        work_item=WorkItemResponse.from_model(updated_work_item),
+        transition_id=validation_result.transition_id,
+        source_state_id=source_state_id or "",
+        target_state_id=request.target_state_id,
+    )
