@@ -46,3 +46,19 @@ class ProjectComponentResponse(BaseModel):
 
 class ProjectComponentListResponse(BaseModel):
     items: list[ProjectComponentResponse]
+
+
+class ProjectVersionCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+
+
+class ProjectVersionResponse(BaseModel):
+    id: str
+    project_id: str
+    name: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProjectVersionListResponse(BaseModel):
+    items: list[ProjectVersionResponse]

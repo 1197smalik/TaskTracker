@@ -15,6 +15,9 @@ from taskmaster_backend.projects.schemas import (
     ProjectLabelCreateRequest,
     ProjectLabelListResponse,
     ProjectLabelResponse,
+    ProjectVersionCreateRequest,
+    ProjectVersionListResponse,
+    ProjectVersionResponse,
 )
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -42,6 +45,20 @@ def _components_not_implemented_error() -> ProjectApiErrorResponse:
             "reason": (
                 "Component storage and persistence wiring are intentionally "
                 "deferred to later stories."
+            ),
+        },
+        correlation_id=str(uuid4()),
+    )
+
+
+def _versions_not_implemented_error() -> ProjectApiErrorResponse:
+    return ProjectApiErrorResponse(
+        error_code="project_versions_not_implemented",
+        message="Project version persistence is not available yet.",
+        details={
+            "reason": (
+                "Version storage and persistence wiring are intentionally "
+                "deferred until the backing schema story is implemented."
             ),
         },
         correlation_id=str(uuid4()),
@@ -141,6 +158,57 @@ def create_project_component(
 ) -> JSONResponse:
     _ = project_id
     error = _components_not_implemented_error()
+    return JSONResponse(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        content=error.model_dump(),
+    )
+
+
+@router.get(
+    "/{project_id}/versions",
+    response_model=ProjectVersionListResponse,
+    responses={
+        status.HTTP_501_NOT_IMPLEMENTED: {
+            "model": ProjectApiErrorResponse,
+            "description": "Project version listing is defined but not implemented yet.",
+        },
+    },
+    summary="List project versions",
+    description=(
+        "Versioned project version listing contract. Version persistence and retrieval are "
+        "intentionally deferred until the backing schema and data access stories."
+    ),
+)
+def list_project_versions(project_id: str) -> JSONResponse:
+    _ = project_id
+    error = _versions_not_implemented_error()
+    return JSONResponse(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        content=error.model_dump(),
+    )
+
+
+@router.post(
+    "/{project_id}/versions",
+    response_model=ProjectVersionResponse,
+    responses={
+        status.HTTP_501_NOT_IMPLEMENTED: {
+            "model": ProjectApiErrorResponse,
+            "description": "Project version creation is defined but not implemented yet.",
+        },
+    },
+    summary="Create project version",
+    description=(
+        "Versioned project version creation contract. Version persistence is intentionally "
+        "deferred until the backing schema and data access stories."
+    ),
+)
+def create_project_version(
+    project_id: str,
+    _request: ProjectVersionCreateRequest,
+) -> JSONResponse:
+    _ = project_id
+    error = _versions_not_implemented_error()
     return JSONResponse(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         content=error.model_dump(),
