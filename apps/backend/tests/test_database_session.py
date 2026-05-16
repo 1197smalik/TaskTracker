@@ -35,6 +35,7 @@ def test_base_metadata_registers_known_domain_tables() -> None:
     assert "users" in Base.metadata.tables
     assert "versions" in Base.metadata.tables
     assert "work_items" in Base.metadata.tables
+    assert "workflow_definitions" in Base.metadata.tables
     assert "workspaces" in Base.metadata.tables
 
 

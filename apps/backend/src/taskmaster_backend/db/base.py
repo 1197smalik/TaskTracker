@@ -11,3 +11,4 @@ class Base(DeclarativeBase):
 from taskmaster_backend.identity import models as identity_models  # noqa: E402,F401
 from taskmaster_backend.projects import models as project_models  # noqa: E402,F401
 from taskmaster_backend.work_items import models as work_item_models  # noqa: E402,F401
+from taskmaster_backend.workflows import models as workflow_models  # noqa: E402,F401
