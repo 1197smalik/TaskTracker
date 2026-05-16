@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from taskmaster_backend.work_items.models import WorkItem
 
@@ -40,6 +40,35 @@ class WorkItemCreateRequest(BaseModel):
 class WorkItemListParams(BaseModel):
     limit: int = Field(default=50, ge=1, le=100)
     offset: int = Field(default=0, ge=0)
+
+
+class WorkItemUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int = Field(ge=1)
+    type: WorkItemType | None = None
+    status: str | None = Field(default=None, min_length=1, max_length=64)
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    sprint_id: str | None = Field(default=None, max_length=36)
+    epic_id: str | None = Field(default=None, max_length=36)
+    assignee_id: str | None = Field(default=None, max_length=36)
+    reporter_id: str | None = Field(default=None, max_length=36)
+    description: str | None = None
+    priority: str | None = Field(default=None, max_length=64)
+    severity: str | None = Field(default=None, max_length=64)
+    estimate: int | None = None
+    typed_metadata: dict[str, object] | None = None
+
+    def update_fields(self) -> dict[str, object | None]:
+        data = self.model_dump(exclude_unset=True)
+        data.pop("expected_version")
+        return data
+
+    @model_validator(mode="after")
+    def require_update_field(self) -> Self:
+        if not self.update_fields():
+            raise ValueError("At least one update field is required.")
+        return self
 
 
 class WorkItemResponse(BaseModel):

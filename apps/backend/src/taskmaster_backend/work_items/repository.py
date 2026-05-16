@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from taskmaster_backend.projects.models import Project
 from taskmaster_backend.work_items.models import WorkItem
-from taskmaster_backend.work_items.schemas import WorkItemCreateRequest
+from taskmaster_backend.work_items.schemas import WorkItemCreateRequest, WorkItemUpdateRequest
 
 
 def get_project(session: Session, project_id: str) -> Project | None:
@@ -71,3 +71,18 @@ def list_project_work_items(
     )
     items = list(session.scalars(statement).all())
     return items, total or 0
+
+
+def update_work_item(
+    session: Session,
+    work_item: WorkItem,
+    request: WorkItemUpdateRequest,
+) -> WorkItem:
+    for field_name, value in request.update_fields().items():
+        setattr(work_item, field_name, value)
+
+    work_item.version += 1
+    session.add(work_item)
+    session.commit()
+    session.refresh(work_item)
+    return work_item

@@ -87,8 +87,9 @@ def test_work_item_detail_route_is_registered_under_versioned_api() -> None:
         and route.path == "/api/v1/projects/{project_id}/work-items/{work_item_id}"
     ]
 
-    assert len(routes) == 1
-    assert routes[0].methods == {"GET"}
+    assert len(routes) == 2
+    methods = {method for route in routes for method in route.methods}
+    assert methods == {"GET", "PATCH"}
 
 
 def test_work_item_detail_route_openapi_contract_is_exposed() -> None:

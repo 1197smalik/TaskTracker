@@ -140,7 +140,7 @@ def test_work_item_create_returns_not_found_for_unknown_project() -> None:
     assert b"project_not_found" in response.body
 
 
-def test_work_item_routes_do_not_add_detail_list_or_update_endpoints() -> None:
+def test_work_item_routes_do_not_add_delete_or_parent_child_endpoints() -> None:
     app = create_app()
     work_item_routes = [
         route
@@ -163,5 +163,5 @@ def test_work_item_routes_do_not_add_detail_list_or_update_endpoints() -> None:
     detail_methods = {method for route in detail_routes for method in route.methods}
 
     assert collection_methods == {"GET", "POST"}
-    assert detail_methods == {"GET"}
-    assert len(work_item_routes) == 3
+    assert detail_methods == {"GET", "PATCH"}
+    assert len(work_item_routes) == 4
