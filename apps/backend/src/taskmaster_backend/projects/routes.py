@@ -9,6 +9,9 @@ from fastapi.responses import JSONResponse
 
 from taskmaster_backend.projects.schemas import (
     ProjectApiErrorResponse,
+    ProjectComponentCreateRequest,
+    ProjectComponentListResponse,
+    ProjectComponentResponse,
     ProjectLabelCreateRequest,
     ProjectLabelListResponse,
     ProjectLabelResponse,
@@ -24,6 +27,20 @@ def _labels_not_implemented_error() -> ProjectApiErrorResponse:
         details={
             "reason": (
                 "Label storage and persistence wiring are intentionally "
+                "deferred to later stories."
+            ),
+        },
+        correlation_id=str(uuid4()),
+    )
+
+
+def _components_not_implemented_error() -> ProjectApiErrorResponse:
+    return ProjectApiErrorResponse(
+        error_code="project_components_not_implemented",
+        message="Project component persistence is not available yet.",
+        details={
+            "reason": (
+                "Component storage and persistence wiring are intentionally "
                 "deferred to later stories."
             ),
         },
@@ -73,6 +90,57 @@ def list_project_labels(project_id: str) -> JSONResponse:
 def create_project_label(project_id: str, _request: ProjectLabelCreateRequest) -> JSONResponse:
     _ = project_id
     error = _labels_not_implemented_error()
+    return JSONResponse(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        content=error.model_dump(),
+    )
+
+
+@router.get(
+    "/{project_id}/components",
+    response_model=ProjectComponentListResponse,
+    responses={
+        status.HTTP_501_NOT_IMPLEMENTED: {
+            "model": ProjectApiErrorResponse,
+            "description": "Project component listing is defined but not implemented yet.",
+        },
+    },
+    summary="List project components",
+    description=(
+        "Versioned project component listing contract. Component persistence and retrieval are "
+        "intentionally deferred until the backing schema and data access stories."
+    ),
+)
+def list_project_components(project_id: str) -> JSONResponse:
+    _ = project_id
+    error = _components_not_implemented_error()
+    return JSONResponse(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        content=error.model_dump(),
+    )
+
+
+@router.post(
+    "/{project_id}/components",
+    response_model=ProjectComponentResponse,
+    responses={
+        status.HTTP_501_NOT_IMPLEMENTED: {
+            "model": ProjectApiErrorResponse,
+            "description": "Project component creation is defined but not implemented yet.",
+        },
+    },
+    summary="Create project component",
+    description=(
+        "Versioned project component creation contract. Component persistence is intentionally "
+        "deferred until the backing schema and data access stories."
+    ),
+)
+def create_project_component(
+    project_id: str,
+    _request: ProjectComponentCreateRequest,
+) -> JSONResponse:
+    _ = project_id
+    error = _components_not_implemented_error()
     return JSONResponse(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         content=error.model_dump(),
