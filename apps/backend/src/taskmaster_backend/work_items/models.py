@@ -25,7 +25,12 @@ class WorkItem(Base):
             name="ck_work_items_type_supported",
         ),
         CheckConstraint("version >= 1", name="ck_work_items_version_positive"),
+        CheckConstraint(
+            "parent_id IS NULL OR parent_id != id",
+            name="ck_work_items_not_self_parent",
+        ),
         Index("ix_work_items_project_id_id", "project_id", "id"),
+        Index("ix_work_items_project_id_parent_id", "project_id", "parent_id"),
         Index("ix_work_items_project_id_current_state_id", "project_id", "current_state_id"),
         Index("ix_work_items_project_id_assignee_id_status", "project_id", "assignee_id", "status"),
         Index("ix_work_items_project_id_type_priority", "project_id", "type", "priority"),
@@ -42,6 +47,11 @@ class WorkItem(Base):
         ForeignKey("projects.id"),
         nullable=False,
         index=True,
+    )
+    parent_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("work_items.id"),
+        nullable=True,
     )
     sprint_id: Mapped[str | None] = mapped_column(
         String(36),

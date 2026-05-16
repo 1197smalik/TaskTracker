@@ -26,6 +26,7 @@ def test_work_item_model_has_expected_columns() -> None:
     assert set(columns.keys()) == {
         "id",
         "project_id",
+        "parent_id",
         "sprint_id",
         "epic_id",
         "assignee_id",
@@ -45,6 +46,7 @@ def test_work_item_model_has_expected_columns() -> None:
     }
     assert isinstance(columns["id"].type, String)
     assert isinstance(columns["project_id"].type, String)
+    assert isinstance(columns["parent_id"].type, String)
     assert isinstance(columns["sprint_id"].type, String)
     assert isinstance(columns["epic_id"].type, String)
     assert isinstance(columns["assignee_id"].type, String)
@@ -80,6 +82,7 @@ def test_work_item_model_has_expected_foreign_keys() -> None:
     }
 
     assert foreign_keys[("project_id",)] == ("projects.id",)
+    assert foreign_keys[("parent_id",)] == ("work_items.id",)
     assert foreign_keys[("sprint_id",)] == ("sprints.id",)
     assert foreign_keys[("epic_id",)] == ("epics.id",)
     assert foreign_keys[("assignee_id",)] == ("users.id",)
@@ -104,6 +107,7 @@ def test_work_item_model_has_project_scoped_indexes_and_constraints() -> None:
 
     assert index_columns["ix_work_items_project_id"] == ("project_id",)
     assert index_columns["ix_work_items_project_id_id"] == ("project_id", "id")
+    assert index_columns["ix_work_items_project_id_parent_id"] == ("project_id", "parent_id")
     assert index_columns["ix_work_items_project_id_current_state_id"] == (
         "project_id",
         "current_state_id",
@@ -125,12 +129,14 @@ def test_work_item_model_has_project_scoped_indexes_and_constraints() -> None:
     assert any(
         constraint.name == "ck_work_items_version_positive" for constraint in check_constraints
     )
+    assert any(
+        constraint.name == "ck_work_items_not_self_parent" for constraint in check_constraints
+    )
 
 
 def test_work_item_model_does_not_introduce_later_story_or_speculative_fields() -> None:
     columns = WorkItem.__table__.columns
 
-    assert "parent_id" not in columns
     assert "board_id" not in columns
     assert "label_id" not in columns
     assert "component_id" not in columns

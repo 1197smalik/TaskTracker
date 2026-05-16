@@ -21,6 +21,7 @@ def create_work_item(
 ) -> WorkItem:
     work_item = WorkItem(
         project_id=project_id,
+        parent_id=request.parent_id,
         sprint_id=request.sprint_id,
         epic_id=request.epic_id,
         assignee_id=request.assignee_id,
@@ -71,6 +72,42 @@ def list_project_work_items(
     )
     items = list(session.scalars(statement).all())
     return items, total or 0
+
+
+def validate_parent_relationship(
+    session: Session,
+    project_id: str,
+    work_item_id: str | None,
+    parent_id: str | None,
+) -> str | None:
+    if parent_id is None:
+        return None
+
+    if work_item_id is not None and parent_id == work_item_id:
+        return "self_parent"
+
+    parent = get_project_work_item(session, project_id, parent_id)
+    if parent is None:
+        return "parent_not_found"
+
+    if work_item_id is None:
+        return None
+
+    visited_parent_ids: set[str] = set()
+    current_parent = parent
+    while current_parent.parent_id is not None:
+        if current_parent.parent_id == work_item_id:
+            return "cycle"
+        if current_parent.parent_id in visited_parent_ids:
+            return "cycle"
+
+        visited_parent_ids.add(current_parent.parent_id)
+        next_parent = get_project_work_item(session, project_id, current_parent.parent_id)
+        if next_parent is None:
+            return None
+        current_parent = next_parent
+
+    return None
 
 
 def update_work_item(

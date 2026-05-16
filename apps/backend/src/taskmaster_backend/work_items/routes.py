@@ -16,6 +16,7 @@ from taskmaster_backend.work_items.repository import (
     get_project_work_item,
     list_project_work_items,
     update_work_item,
+    validate_parent_relationship,
 )
 from taskmaster_backend.work_items.schemas import (
     WorkItemApiErrorResponse,
@@ -54,6 +55,15 @@ def _work_item_version_conflict_error(current_version: int) -> WorkItemApiErrorR
     )
 
 
+def _invalid_parent_error(reason: str) -> WorkItemApiErrorResponse:
+    return WorkItemApiErrorResponse(
+        error_code="invalid_work_item_parent",
+        message="Work item parent relationship is invalid.",
+        details={"reason": reason},
+        correlation_id=str(uuid4()),
+    )
+
+
 @router.post(
     "",
     status_code=status.HTTP_201_CREATED,
@@ -80,6 +90,14 @@ def create_project_work_item(
         error = _project_not_found_error()
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
+            content=error.model_dump(),
+        )
+
+    parent_error = validate_parent_relationship(session, project_id, None, request.parent_id)
+    if parent_error is not None:
+        error = _invalid_parent_error(parent_error)
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
             content=error.model_dump(),
         )
 
@@ -178,6 +196,10 @@ def get_project_work_item_detail(
             "model": WorkItemApiErrorResponse,
             "description": "Work item version does not match the expected version.",
         },
+        status.HTTP_400_BAD_REQUEST: {
+            "model": WorkItemApiErrorResponse,
+            "description": "Parent relationship failed validation.",
+        },
     },
     summary="Update work item",
     description=(
@@ -206,6 +228,20 @@ def update_project_work_item_route(
             status_code=status.HTTP_409_CONFLICT,
             content=error.model_dump(),
         )
+
+    if "parent_id" in request.update_fields():
+        parent_error = validate_parent_relationship(
+            session,
+            project_id,
+            work_item_id,
+            request.parent_id,
+        )
+        if parent_error is not None:
+            error = _invalid_parent_error(parent_error)
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content=error.model_dump(),
+            )
 
     updated_work_item = update_work_item(session, work_item, request)
     return WorkItemResponse.from_model(updated_work_item)

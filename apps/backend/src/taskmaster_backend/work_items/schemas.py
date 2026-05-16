@@ -25,6 +25,7 @@ class WorkItemCreateRequest(BaseModel):
     type: WorkItemType
     status: str = Field(min_length=1, max_length=64)
     title: str = Field(min_length=1, max_length=255)
+    parent_id: str | None = Field(default=None, max_length=36)
     sprint_id: str | None = Field(default=None, max_length=36)
     epic_id: str | None = Field(default=None, max_length=36)
     assignee_id: str | None = Field(default=None, max_length=36)
@@ -49,6 +50,7 @@ class WorkItemUpdateRequest(BaseModel):
     type: WorkItemType | None = None
     status: str | None = Field(default=None, min_length=1, max_length=64)
     title: str | None = Field(default=None, min_length=1, max_length=255)
+    parent_id: str | None = Field(default=None, max_length=36)
     sprint_id: str | None = Field(default=None, max_length=36)
     epic_id: str | None = Field(default=None, max_length=36)
     assignee_id: str | None = Field(default=None, max_length=36)
@@ -74,6 +76,7 @@ class WorkItemUpdateRequest(BaseModel):
 class WorkItemResponse(BaseModel):
     id: str
     project_id: str
+    parent_id: str | None
     sprint_id: str | None
     epic_id: str | None
     assignee_id: str | None
@@ -96,6 +99,7 @@ class WorkItemResponse(BaseModel):
         return cls(
             id=work_item.id,
             project_id=work_item.project_id,
+            parent_id=work_item.parent_id,
             sprint_id=work_item.sprint_id,
             epic_id=work_item.epic_id,
             assignee_id=work_item.assignee_id,
