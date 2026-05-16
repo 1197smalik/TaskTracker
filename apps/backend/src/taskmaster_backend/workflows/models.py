@@ -228,3 +228,49 @@ class WorkflowTransitionRule(Base):
         default=utc_now,
         onupdate=utc_now,
     )
+
+
+class WorkflowAssignment(Base):
+    """Project assignment to its active workflow definition."""
+
+    __tablename__ = "workflow_assignments"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id",
+            name="uq_workflow_assignments_project_id",
+        ),
+        Index(
+            "ix_workflow_assignments_project_id_workflow_definition_id",
+            "project_id",
+            "workflow_definition_id",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+    project_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("projects.id"),
+        nullable=False,
+        index=True,
+    )
+    workflow_definition_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("workflow_definitions.id"),
+        nullable=False,
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        onupdate=utc_now,
+    )
