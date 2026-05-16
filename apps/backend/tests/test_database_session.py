@@ -28,6 +28,7 @@ def test_base_metadata_registers_known_domain_tables() -> None:
     assert "projects" in Base.metadata.tables
     assert "refresh_tokens" in Base.metadata.tables
     assert "roles" in Base.metadata.tables
+    assert "sprints" in Base.metadata.tables
     assert "users" in Base.metadata.tables
     assert "workspaces" in Base.metadata.tables
 
