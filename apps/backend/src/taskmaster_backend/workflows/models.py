@@ -67,3 +67,45 @@ class WorkflowDefinition(Base):
         default=utc_now,
         onupdate=utc_now,
     )
+
+
+class WorkflowState(Base):
+    """Lifecycle state contained by a workflow definition."""
+
+    __tablename__ = "workflow_states"
+    __table_args__ = (
+        UniqueConstraint(
+            "workflow_definition_id",
+            "name",
+            name="uq_workflow_states_workflow_definition_id_name",
+        ),
+        Index(
+            "ix_workflow_states_workflow_definition_id_name",
+            "workflow_definition_id",
+            "name",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+    workflow_definition_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("workflow_definitions.id"),
+        nullable=False,
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        onupdate=utc_now,
+    )
