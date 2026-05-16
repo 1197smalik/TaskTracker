@@ -46,8 +46,9 @@ def test_work_item_create_route_is_registered_under_versioned_api() -> None:
         and route.path == "/api/v1/projects/{project_id}/work-items"
     ]
 
-    assert len(routes) == 1
-    assert routes[0].methods == {"POST"}
+    assert len(routes) == 2
+    methods = {method for route in routes for method in route.methods}
+    assert methods == {"GET", "POST"}
 
 
 def test_work_item_create_route_openapi_contract_is_exposed() -> None:
@@ -147,8 +148,20 @@ def test_work_item_routes_do_not_add_detail_list_or_update_endpoints() -> None:
         if isinstance(route, APIRoute) and "/work-items" in route.path
     ]
 
-    route_map = {route.path: route.methods for route in work_item_routes}
+    collection_routes = [
+        route
+        for route in work_item_routes
+        if route.path == "/api/v1/projects/{project_id}/work-items"
+    ]
+    detail_routes = [
+        route
+        for route in work_item_routes
+        if route.path == "/api/v1/projects/{project_id}/work-items/{work_item_id}"
+    ]
 
-    assert route_map["/api/v1/projects/{project_id}/work-items"] == {"POST"}
-    assert route_map["/api/v1/projects/{project_id}/work-items/{work_item_id}"] == {"GET"}
-    assert len(work_item_routes) == 2
+    collection_methods = {method for route in collection_routes for method in route.methods}
+    detail_methods = {method for route in detail_routes for method in route.methods}
+
+    assert collection_methods == {"GET", "POST"}
+    assert detail_methods == {"GET"}
+    assert len(work_item_routes) == 3

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from taskmaster_backend.projects.models import Project
@@ -51,3 +51,23 @@ def get_project_work_item(
         WorkItem.id == work_item_id,
     )
     return session.scalars(statement).one_or_none()
+
+
+def list_project_work_items(
+    session: Session,
+    project_id: str,
+    limit: int,
+    offset: int,
+) -> tuple[list[WorkItem], int]:
+    total = session.scalar(
+        select(func.count()).select_from(WorkItem).where(WorkItem.project_id == project_id)
+    )
+    statement = (
+        select(WorkItem)
+        .where(WorkItem.project_id == project_id)
+        .order_by(WorkItem.created_at.asc(), WorkItem.id.asc())
+        .limit(limit)
+        .offset(offset)
+    )
+    items = list(session.scalars(statement).all())
+    return items, total or 0

@@ -37,6 +37,11 @@ class WorkItemCreateRequest(BaseModel):
     typed_metadata: dict[str, object] = Field(default_factory=dict)
 
 
+class WorkItemListParams(BaseModel):
+    limit: int = Field(default=50, ge=1, le=100)
+    offset: int = Field(default=0, ge=0)
+
+
 class WorkItemResponse(BaseModel):
     id: str
     project_id: str
@@ -79,3 +84,10 @@ class WorkItemResponse(BaseModel):
             created_at=work_item.created_at,
             updated_at=work_item.updated_at,
         )
+
+
+class WorkItemListResponse(BaseModel):
+    items: list[WorkItemResponse]
+    total: int
+    limit: int
+    offset: int
