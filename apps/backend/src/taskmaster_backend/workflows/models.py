@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -158,6 +159,63 @@ class WorkflowTransition(Base):
         String(36),
         ForeignKey("workflow_states.id"),
         nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        onupdate=utc_now,
+    )
+
+
+class WorkflowTransitionRule(Base):
+    """Structured rule metadata attached to a workflow transition."""
+
+    __tablename__ = "workflow_transition_rules"
+    __table_args__ = (
+        UniqueConstraint(
+            "workflow_transition_id",
+            "rule_type",
+            name="uq_workflow_transition_rules_transition_id_rule_type",
+        ),
+        CheckConstraint(
+            "rule_type IN ("
+            "'required_fields', "
+            "'allowed_roles', "
+            "'assignee_reporter', "
+            "'parent_child_completion', "
+            "'comment_required'"
+            ")",
+            name="ck_workflow_transition_rules_type_supported",
+        ),
+        Index(
+            "ix_workflow_transition_rules_transition_id_rule_type",
+            "workflow_transition_id",
+            "rule_type",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+    workflow_transition_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("workflow_transitions.id"),
+        nullable=False,
+        index=True,
+    )
+    rule_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    config: Mapped[dict[str, object]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=dict,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

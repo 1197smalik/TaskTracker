@@ -37,6 +37,7 @@ def test_base_metadata_registers_known_domain_tables() -> None:
     assert "work_items" in Base.metadata.tables
     assert "workflow_definitions" in Base.metadata.tables
     assert "workflow_states" in Base.metadata.tables
+    assert "workflow_transition_rules" in Base.metadata.tables
     assert "workflow_transitions" in Base.metadata.tables
     assert "workspaces" in Base.metadata.tables
 
