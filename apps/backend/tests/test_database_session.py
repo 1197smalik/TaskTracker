@@ -22,6 +22,7 @@ def test_settings_read_database_url_from_environment(monkeypatch: pytest.MonkeyP
 
 
 def test_base_metadata_registers_known_domain_tables() -> None:
+    assert "audit_logs" in Base.metadata.tables
     assert "boards" in Base.metadata.tables
     assert "components" in Base.metadata.tables
     assert "epics" in Base.metadata.tables
