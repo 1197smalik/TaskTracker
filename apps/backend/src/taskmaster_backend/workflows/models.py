@@ -109,3 +109,64 @@ class WorkflowState(Base):
         default=utc_now,
         onupdate=utc_now,
     )
+
+
+class WorkflowTransition(Base):
+    """Directed movement between two states in a workflow definition."""
+
+    __tablename__ = "workflow_transitions"
+    __table_args__ = (
+        UniqueConstraint(
+            "workflow_definition_id",
+            "source_state_id",
+            "target_state_id",
+            name="uq_workflow_transitions_workflow_definition_id_source_target",
+        ),
+        CheckConstraint(
+            "source_state_id != target_state_id",
+            name="ck_workflow_transitions_distinct_states",
+        ),
+        Index(
+            "ix_workflow_transitions_workflow_definition_id_source_state_id",
+            "workflow_definition_id",
+            "source_state_id",
+        ),
+        Index(
+            "ix_workflow_transitions_workflow_definition_id_target_state_id",
+            "workflow_definition_id",
+            "target_state_id",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+    workflow_definition_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("workflow_definitions.id"),
+        nullable=False,
+        index=True,
+    )
+    source_state_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("workflow_states.id"),
+        nullable=False,
+    )
+    target_state_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("workflow_states.id"),
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        onupdate=utc_now,
+    )
