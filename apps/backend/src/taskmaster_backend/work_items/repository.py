@@ -1,7 +1,8 @@
-"""Persistence helpers for Work Item creation."""
+"""Persistence helpers for Work Item endpoints."""
 
 from __future__ import annotations
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from taskmaster_backend.projects.models import Project
@@ -38,3 +39,15 @@ def create_work_item(
     session.commit()
     session.refresh(work_item)
     return work_item
+
+
+def get_project_work_item(
+    session: Session,
+    project_id: str,
+    work_item_id: str,
+) -> WorkItem | None:
+    statement = select(WorkItem).where(
+        WorkItem.project_id == project_id,
+        WorkItem.id == work_item_id,
+    )
+    return session.scalars(statement).one_or_none()

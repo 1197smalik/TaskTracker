@@ -147,6 +147,8 @@ def test_work_item_routes_do_not_add_detail_list_or_update_endpoints() -> None:
         if isinstance(route, APIRoute) and "/work-items" in route.path
     ]
 
-    assert len(work_item_routes) == 1
-    assert work_item_routes[0].path == "/api/v1/projects/{project_id}/work-items"
-    assert work_item_routes[0].methods == {"POST"}
+    route_map = {route.path: route.methods for route in work_item_routes}
+
+    assert route_map["/api/v1/projects/{project_id}/work-items"] == {"POST"}
+    assert route_map["/api/v1/projects/{project_id}/work-items/{work_item_id}"] == {"GET"}
+    assert len(work_item_routes) == 2

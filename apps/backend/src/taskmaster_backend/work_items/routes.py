@@ -9,7 +9,11 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from taskmaster_backend.db.session import get_db_session
-from taskmaster_backend.work_items.repository import create_work_item, get_project
+from taskmaster_backend.work_items.repository import (
+    create_work_item,
+    get_project,
+    get_project_work_item,
+)
 from taskmaster_backend.work_items.schemas import (
     WorkItemApiErrorResponse,
     WorkItemCreateRequest,
@@ -23,6 +27,14 @@ def _project_not_found_error() -> WorkItemApiErrorResponse:
     return WorkItemApiErrorResponse(
         error_code="project_not_found",
         message="Project was not found or is inaccessible.",
+        correlation_id=str(uuid4()),
+    )
+
+
+def _work_item_not_found_error() -> WorkItemApiErrorResponse:
+    return WorkItemApiErrorResponse(
+        error_code="work_item_not_found",
+        message="Work item was not found or is inaccessible.",
         correlation_id=str(uuid4()),
     )
 
@@ -57,4 +69,36 @@ def create_project_work_item(
         )
 
     work_item = create_work_item(session, project_id, request)
+    return WorkItemResponse.from_model(work_item)
+
+
+@router.get(
+    "/{work_item_id}",
+    response_model=WorkItemResponse,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "model": WorkItemApiErrorResponse,
+            "description": "Work item was not found or is inaccessible.",
+        },
+    },
+    summary="Get work item detail",
+    description=(
+        "Fetch a single project-scoped work item by id. Cross-project access returns "
+        "a stable not found response. Workflow, hierarchy, and related collections "
+        "are handled by later stories."
+    ),
+)
+def get_project_work_item_detail(
+    project_id: str,
+    work_item_id: str,
+    session: Session = Depends(get_db_session),
+) -> WorkItemResponse | JSONResponse:
+    work_item = get_project_work_item(session, project_id, work_item_id)
+    if work_item is None:
+        error = _work_item_not_found_error()
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=error.model_dump(),
+        )
+
     return WorkItemResponse.from_model(work_item)
