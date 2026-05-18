@@ -18,6 +18,8 @@ def create_work_item(
     session: Session,
     project_id: str,
     request: WorkItemCreateRequest,
+    *,
+    commit: bool = True,
 ) -> WorkItem:
     work_item = WorkItem(
         project_id=project_id,
@@ -37,8 +39,12 @@ def create_work_item(
         typed_metadata=request.typed_metadata,
     )
     session.add(work_item)
-    session.commit()
-    session.refresh(work_item)
+    session.flush()
+
+    if commit:
+        session.commit()
+        session.refresh(work_item)
+
     return work_item
 
 

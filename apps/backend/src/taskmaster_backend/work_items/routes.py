@@ -9,7 +9,9 @@ from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from taskmaster_backend.audit.service import AuditLogWriteRequest, write_audit_log
 from taskmaster_backend.db.session import get_db_session
+from taskmaster_backend.identity.models import Workspace
 from taskmaster_backend.work_items.repository import (
     create_work_item,
     get_project,
@@ -102,8 +104,8 @@ def _invalid_transition_error(
     summary="Create work item",
     description=(
         "Create a project-scoped work item using the generic Work Item model. "
-        "Workflow transitions, parent-child relationships, assignments validation, "
-        "and audit events are handled by later stories."
+        "Workflow transitions, parent-child relationships, and assignment validation "
+        "are handled by later stories."
     ),
 )
 def create_project_work_item(
@@ -111,7 +113,8 @@ def create_project_work_item(
     request: WorkItemCreateRequest,
     session: Session = Depends(get_db_session),
 ) -> WorkItemResponse | JSONResponse:
-    if get_project(session, project_id) is None:
+    project = get_project(session, project_id)
+    if project is None:
         error = _project_not_found_error()
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -126,7 +129,37 @@ def create_project_work_item(
             content=error.model_dump(),
         )
 
-    work_item = create_work_item(session, project_id, request)
+    workspace = session.get(Workspace, project.workspace_id)
+    if workspace is None:
+        error = _project_not_found_error()
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=error.model_dump(),
+        )
+
+    correlation_id = str(uuid4())
+    work_item = create_work_item(session, project_id, request, commit=False)
+    write_audit_log(
+        session,
+        AuditLogWriteRequest(
+            actor_type="system",
+            organization_id=workspace.organization_id,
+            workspace_id=workspace.id,
+            project_id=project.id,
+            entity_type="work_item",
+            entity_id=work_item.id,
+            action="work_item.created",
+            after_summary={
+                "type": work_item.type,
+                "status": work_item.status,
+                "title": work_item.title,
+            },
+            correlation_id=correlation_id,
+        ),
+        commit=False,
+    )
+    session.commit()
+    session.refresh(work_item)
     return WorkItemResponse.from_model(work_item)
 
 

@@ -28,7 +28,12 @@ class AuditLogWriteRequest:
     user_agent: str | None = None
 
 
-def write_audit_log(session: Session, request: AuditLogWriteRequest) -> AuditLog:
+def write_audit_log(
+    session: Session,
+    request: AuditLogWriteRequest,
+    *,
+    commit: bool = True,
+) -> AuditLog:
     _require_non_empty(request.actor_type, "actor_type")
     _require_non_empty(request.organization_id, "organization_id")
     _require_non_empty(request.entity_type, "entity_type")
@@ -52,7 +57,7 @@ def write_audit_log(session: Session, request: AuditLogWriteRequest) -> AuditLog
         user_agent=request.user_agent,
         correlation_id=request.correlation_id,
     )
-    return create_audit_log(session, audit_log)
+    return create_audit_log(session, audit_log, commit=commit)
 
 
 def _require_non_empty(value: str, field_name: str) -> None:
