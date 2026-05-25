@@ -122,3 +122,45 @@ class Notification(Base):
         default=utc_now,
         onupdate=utc_now,
     )
+
+
+class Attachment(Base):
+    """Metadata for a work item attachment stored outside the database."""
+
+    __tablename__ = "attachments"
+    __table_args__ = (
+        CheckConstraint("size_bytes >= 0", name="ck_attachments_size_bytes_non_negative"),
+        Index("ix_attachments_work_item_id_created_at", "work_item_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+    work_item_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("work_items.id"),
+        nullable=False,
+    )
+    uploader_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+    storage_key: Mapped[str] = mapped_column(String(512), nullable=False, unique=True)
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(255), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        onupdate=utc_now,
+    )
