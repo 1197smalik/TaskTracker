@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Annotated
 from uuid import uuid4
 
@@ -9,7 +10,11 @@ from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from taskmaster_backend.audit.service import AuditLogWriteRequest, write_audit_log
+from taskmaster_backend.audit.service import (
+    AuditLogWriteRequest,
+    create_outbox_event,
+    write_audit_log,
+)
 from taskmaster_backend.db.session import get_db_session
 from taskmaster_backend.identity.models import Workspace
 from taskmaster_backend.work_items.repository import (
@@ -138,6 +143,7 @@ def create_project_work_item(
         )
 
     correlation_id = str(uuid4())
+    now = datetime.now(timezone.utc)
     work_item = create_work_item(session, project_id, request, commit=False)
     write_audit_log(
         session,
@@ -157,6 +163,24 @@ def create_project_work_item(
             correlation_id=correlation_id,
         ),
         commit=False,
+    )
+    create_outbox_event(
+        session,
+        event_type="work_item.created",
+        occurred_at=now,
+        actor_id=None,
+        organization_id=workspace.organization_id,
+        workspace_id=workspace.id,
+        project_id=project.id,
+        entity_type="work_item",
+        entity_id=work_item.id,
+        correlation_id=correlation_id,
+        payload={
+            "type": work_item.type,
+            "status": work_item.status,
+            "title": work_item.title,
+            "description": work_item.description,
+        },
     )
     session.commit()
     session.refresh(work_item)
