@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from taskmaster_backend.collaboration.models import Notification
@@ -60,3 +60,43 @@ def create_notification(
     )
     session.add(notification)
     return notification
+
+
+def list_notifications_for_recipient(
+    session: Session,
+    *,
+    recipient_id: str,
+    limit: int,
+    offset: int,
+) -> tuple[list[Notification], int]:
+    """List notifications scoped to one recipient."""
+    total = session.scalar(
+        select(func.count())
+        .select_from(Notification)
+        .where(Notification.recipient_id == recipient_id)
+    )
+    notifications = list(
+        session.scalars(
+            select(Notification)
+            .where(Notification.recipient_id == recipient_id)
+            .order_by(Notification.created_at.desc(), Notification.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+    )
+    return notifications, total or 0
+
+
+def get_notification_for_recipient(
+    session: Session,
+    *,
+    notification_id: str,
+    recipient_id: str,
+) -> Notification | None:
+    """Return a notification only when it belongs to the recipient."""
+    return session.scalars(
+        select(Notification).where(
+            Notification.id == notification_id,
+            Notification.recipient_id == recipient_id,
+        )
+    ).first()

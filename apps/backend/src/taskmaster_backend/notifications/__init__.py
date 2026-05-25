@@ -1,5 +1,6 @@
 """Notification creation services and workers."""
 
+from taskmaster_backend.notifications.routes import router
 from taskmaster_backend.notifications.service import NotificationCreationResult
 from taskmaster_backend.notifications.worker import (
     NotificationCreationHandler,
@@ -10,4 +11,5 @@ __all__ = [
     "NotificationCreationHandler",
     "NotificationCreationResult",
     "NotificationCreationWorker",
+    "router",
 ]

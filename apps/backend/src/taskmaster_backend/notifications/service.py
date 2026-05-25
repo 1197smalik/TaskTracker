@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
 from taskmaster_backend.audit.models import EventOutbox
 from taskmaster_backend.collaboration.events import COMMENT_MENTION_DETECTED_EVENT_TYPE
+from taskmaster_backend.collaboration.models import Notification
 from taskmaster_backend.notifications.repository import (
     create_notification,
     find_notification_by_source_event,
+    get_notification_for_recipient,
+    list_notifications_for_recipient,
 )
 
 MENTION_NOTIFICATION_TYPE = "comment.mention"
@@ -24,6 +28,43 @@ class NotificationCreationResult:
     created_count: int
     skipped_count: int
     reason: str | None = None
+
+
+def list_recipient_notifications(
+    session: Session,
+    *,
+    recipient_id: str,
+    limit: int,
+    offset: int,
+) -> tuple[list[Notification], int]:
+    """List notifications for one authenticated recipient."""
+    return list_notifications_for_recipient(
+        session,
+        recipient_id=recipient_id,
+        limit=limit,
+        offset=offset,
+    )
+
+
+def mark_recipient_notification_read(
+    session: Session,
+    *,
+    recipient_id: str,
+    notification_id: str,
+) -> Notification | None:
+    """Mark one recipient-owned notification as read."""
+    notification = get_notification_for_recipient(
+        session,
+        notification_id=notification_id,
+        recipient_id=recipient_id,
+    )
+    if notification is None:
+        return None
+    if notification.read_at is None:
+        notification.read_at = datetime.now(timezone.utc)
+        session.commit()
+        session.refresh(notification)
+    return notification
 
 
 def create_notifications_from_event(
