@@ -125,3 +125,96 @@ class EntityVersion(Base):
         nullable=False,
         default=utc_now,
     )
+
+
+class EventOutbox(Base):
+    """Outbox record for domain events awaiting dispatch."""
+
+    __tablename__ = "event_outbox"
+    __table_args__ = (
+        Index(
+            "ix_event_outbox_status_created_at",
+            "status",
+            "created_at",
+        ),
+        Index(
+            "ix_event_outbox_organization_id_status",
+            "organization_id",
+            "status",
+        ),
+        Index("ix_event_outbox_event_type_created_at", "event_type", "created_at"),
+        Index(
+            "ix_event_outbox_entity_type_entity_id_created_at",
+            "entity_type",
+            "entity_id",
+            "created_at",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+    event_id: Mapped[str] = mapped_column(
+        String(36),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    event_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+    actor_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("users.id"),
+        nullable=True,
+        index=True,
+    )
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("organizations.id"),
+        nullable=False,
+        index=True,
+    )
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("workspaces.id"),
+        nullable=True,
+        index=True,
+    )
+    project_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("projects.id"),
+        nullable=True,
+        index=True,
+    )
+    entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    entity_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    payload_version: Mapped[str] = mapped_column(String(16), default="1.0", nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(32),
+        default="pending",
+        nullable=False,
+        index=True,
+    )
+    retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    dispatched_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        onupdate=utc_now,
+    )
