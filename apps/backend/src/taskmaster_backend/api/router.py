@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from taskmaster_backend.api.health import router as health_router
+from taskmaster_backend.attachments.routes import router as attachments_router
 from taskmaster_backend.collaboration.routes import router as collaboration_router
 from taskmaster_backend.identity.routes import router as identity_router
 from taskmaster_backend.notifications.routes import router as notifications_router
@@ -16,3 +17,4 @@ api_router.include_router(projects_router)
 api_router.include_router(work_items_router)
 api_router.include_router(collaboration_router)
 api_router.include_router(notifications_router)
+api_router.include_router(attachments_router)
