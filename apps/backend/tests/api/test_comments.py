@@ -14,7 +14,13 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from taskmaster_backend.app import create_app
-from taskmaster_backend.collaboration.models import Comment
+from taskmaster_backend.audit.models import EventOutbox
+from taskmaster_backend.collaboration import routes as comment_routes
+from taskmaster_backend.collaboration.events import (
+    COMMENT_CREATED_EVENT_TYPE,
+    COMMENT_MENTION_DETECTED_EVENT_TYPE,
+)
+from taskmaster_backend.collaboration.models import Comment, Notification
 from taskmaster_backend.collaboration.routes import create_work_item_comment
 from taskmaster_backend.collaboration.schemas import CommentCreateRequest, CommentResponse
 from taskmaster_backend.db.base import Base
@@ -92,7 +98,7 @@ def test_comment_create_route_openapi_contract_is_exposed() -> None:
     assert components["CommentCreateRequest"]["required"] == ["body"]
 
 
-def test_comment_create_persists_row_and_returns_created_response() -> None:
+def test_comment_create_persists_row_and_emits_comment_created_event() -> None:
     session_factory = _create_test_session_factory()
     work_item_id = _seed_work_item(session_factory)
     request = CommentCreateRequest(body="This needs follow-up.")
@@ -116,9 +122,95 @@ def test_comment_create_persists_row_and_returns_created_response() -> None:
 
     with session_factory() as session:
         comment = session.scalars(select(Comment)).one()
+        event = session.scalars(
+            select(EventOutbox).filter_by(event_type=COMMENT_CREATED_EVENT_TYPE)
+        ).one()
         assert comment.id == response.id
         assert comment.work_item_id == work_item_id
         assert comment.author_id == "user-123"
+        assert event.entity_type == "comment"
+        assert event.entity_id == comment.id
+        assert event.actor_id == "user-123"
+        assert event.organization_id == "org-1"
+        assert event.workspace_id == "workspace-1"
+        assert event.project_id == "project-1"
+        assert event.payload_version == "1.0"
+        assert event.payload["comment_id"] == comment.id
+        assert event.payload["work_item_id"] == work_item_id
+        assert event.payload["mentioned_handles"] == []
+        assert session.scalars(select(Notification)).all() == []
+
+
+def test_comment_create_includes_raw_mentions_without_resolved_users() -> None:
+    session_factory = _create_test_session_factory()
+    work_item_id = _seed_work_item(session_factory)
+    request = CommentCreateRequest(body="Please check this, @Alice and @bob.")
+
+    with session_factory() as session:
+        response = create_work_item_comment(
+            "project-1",
+            work_item_id,
+            request,
+            session,
+            _principal(),
+            _comment_create_grants(),
+        )
+
+    assert isinstance(response, CommentResponse)
+
+    with session_factory() as session:
+        events = list(session.scalars(select(EventOutbox).order_by(EventOutbox.event_type)))
+        events_by_type = {event.event_type: event for event in events}
+
+    assert set(events_by_type) == {
+        COMMENT_CREATED_EVENT_TYPE,
+        COMMENT_MENTION_DETECTED_EVENT_TYPE,
+    }
+    comment_created = events_by_type[COMMENT_CREATED_EVENT_TYPE]
+    mention_detected = events_by_type[COMMENT_MENTION_DETECTED_EVENT_TYPE]
+    for event in (comment_created, mention_detected):
+        assert event.payload["mentioned_handles"] == ["alice", "bob"]
+        assert "mentioned_user_ids" not in event.payload
+        assert "recipient_ids" not in event.payload
+        resolution = event.payload["mention_recipient_resolution"]
+        assert isinstance(resolution, dict)
+        assert resolution == {
+            "strategy": "raw_handle_only",
+            "unresolved_handles": ["alice", "bob"],
+            "resolved_user_ids": [],
+        }
+
+    with session_factory() as session:
+        assert session.scalars(select(Notification)).all() == []
+
+
+def test_failed_comment_create_emits_no_outbox_event(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session_factory = _create_test_session_factory()
+    work_item_id = _seed_work_item(session_factory)
+    request = CommentCreateRequest(body="This transaction should roll back.")
+
+    def fail_outbox(*args: object, **kwargs: object) -> EventOutbox:
+        raise RuntimeError("outbox write failed")
+
+    monkeypatch.setattr(comment_routes, "create_outbox_event", fail_outbox)
+
+    with session_factory() as session:
+        with pytest.raises(RuntimeError, match="outbox write failed"):
+            create_work_item_comment(
+                "project-1",
+                work_item_id,
+                request,
+                session,
+                _principal(),
+                _comment_create_grants(),
+            )
+
+    with session_factory() as session:
+        assert session.scalars(select(Comment)).all() == []
+        assert session.scalars(select(EventOutbox)).all() == []
+        assert session.scalars(select(Notification)).all() == []
 
 
 def test_comment_create_validates_required_body() -> None:

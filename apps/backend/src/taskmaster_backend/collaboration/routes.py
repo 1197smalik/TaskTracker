@@ -3,12 +3,23 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from taskmaster_backend.audit.service import create_outbox_event
+from taskmaster_backend.collaboration.events import (
+    COLLABORATION_EVENT_PAYLOAD_VERSION,
+    COMMENT_CREATED_EVENT_TYPE,
+    COMMENT_MENTION_DETECTED_EVENT_TYPE,
+    build_comment_created_payload,
+    build_comment_mention_detected_payload,
+    unresolved_mention_recipients,
+)
+from taskmaster_backend.collaboration.mentions import extract_mentions
 from taskmaster_backend.collaboration.repository import create_comment
 from taskmaster_backend.collaboration.schemas import (
     CommentApiErrorResponse,
@@ -22,8 +33,9 @@ from taskmaster_backend.identity.authorization import (
     empty_permission_grants,
 )
 from taskmaster_backend.identity.dependencies import AuthenticatedPrincipal, get_current_principal
+from taskmaster_backend.identity.models import Workspace
 from taskmaster_backend.identity.rbac import PermissionGrant, PermissionScope
-from taskmaster_backend.work_items.repository import get_project_work_item
+from taskmaster_backend.work_items.repository import get_project, get_project_work_item
 
 router = APIRouter(
     prefix="/projects/{project_id}/work-items/{work_item_id}/comments",
@@ -59,9 +71,10 @@ def _work_item_not_found_error() -> CommentApiErrorResponse:
     },
     summary="Create work item comment",
     description=(
-        "Create a user-authored comment on a project-scoped work item. Mention "
-        "extraction, notifications, activity feed records, and rendered markdown "
-        "sanitization are handled by later stories."
+        "Create a user-authored comment on a project-scoped work item and emit "
+        "internal collaboration events. Mention recipient resolution, notifications, "
+        "activity feed records, and rendered markdown sanitization are handled by "
+        "later stories."
     ),
 )
 def create_work_item_comment(
@@ -82,12 +95,73 @@ def create_work_item_comment(
             content=error.model_dump(),
         )
 
-    comment = create_comment(
-        session,
-        work_item_id=work_item.id,
-        author_id=principal.subject,
-        request=request,
-    )
+    project = get_project(session, project_id)
+    workspace = session.get(Workspace, project.workspace_id) if project is not None else None
+    if project is None or workspace is None:
+        error = _work_item_not_found_error()
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=error.model_dump(),
+        )
+
+    try:
+        comment = create_comment(
+            session,
+            work_item_id=work_item.id,
+            author_id=principal.subject,
+            request=request,
+            commit=False,
+        )
+        session.flush()
+        mentions = extract_mentions(request.body)
+        recipient_resolution = unresolved_mention_recipients(mentions)
+        correlation_id = str(uuid4())
+        occurred_at = datetime.now(timezone.utc)
+        create_outbox_event(
+            session,
+            event_type=COMMENT_CREATED_EVENT_TYPE,
+            occurred_at=occurred_at,
+            actor_id=principal.subject,
+            organization_id=workspace.organization_id,
+            workspace_id=workspace.id,
+            project_id=project.id,
+            entity_type="comment",
+            entity_id=comment.id,
+            correlation_id=correlation_id,
+            payload=build_comment_created_payload(
+                comment,
+                project_id=project.id,
+                mentions=mentions,
+                recipient_resolution=recipient_resolution,
+            ),
+            payload_version=COLLABORATION_EVENT_PAYLOAD_VERSION,
+        )
+        if mentions:
+            create_outbox_event(
+                session,
+                event_type=COMMENT_MENTION_DETECTED_EVENT_TYPE,
+                occurred_at=occurred_at,
+                actor_id=principal.subject,
+                organization_id=workspace.organization_id,
+                workspace_id=workspace.id,
+                project_id=project.id,
+                entity_type="comment",
+                entity_id=comment.id,
+                correlation_id=correlation_id,
+                payload=build_comment_mention_detected_payload(
+                    comment,
+                    project_id=project.id,
+                    mentions=mentions,
+                    recipient_resolution=recipient_resolution,
+                ),
+                payload_version=COLLABORATION_EVENT_PAYLOAD_VERSION,
+            )
+        session.commit()
+        session.refresh(comment)
+    except Exception:
+        session.rollback()
+        raise
+
     return CommentResponse.from_model(comment)
 
 
