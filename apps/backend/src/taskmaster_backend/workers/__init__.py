@@ -3,6 +3,12 @@
 from __future__ import annotations
 
 from taskmaster_backend.workers.config import WorkerConfig
+from taskmaster_backend.workers.outbox import OutboxDispatcherWorker, OutboxEventHandler
 from taskmaster_backend.workers.worker import BackgroundWorker
 
-__all__ = ["BackgroundWorker", "WorkerConfig"]
+__all__ = [
+    "BackgroundWorker",
+    "OutboxDispatcherWorker",
+    "OutboxEventHandler",
+    "WorkerConfig",
+]
