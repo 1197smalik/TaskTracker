@@ -414,6 +414,8 @@ def transition_project_work_item_route(
         request.target_state_id,
         commit=False,
     )
+    correlation_id = str(uuid4())
+    now = datetime.now(timezone.utc)
     write_audit_log(
         session,
         AuditLogWriteRequest(
@@ -432,9 +434,26 @@ def transition_project_work_item_route(
                 "target_state_id": request.target_state_id,
                 "current_state_id": request.target_state_id,
             },
-            correlation_id=str(uuid4()),
+            correlation_id=correlation_id,
         ),
         commit=False,
+    )
+    create_outbox_event(
+        session,
+        event_type="work_item.transitioned",
+        occurred_at=now,
+        actor_id=None,
+        organization_id=workspace.organization_id,
+        workspace_id=workspace.id,
+        project_id=project_id,
+        entity_type="work_item",
+        entity_id=updated_work_item.id,
+        correlation_id=correlation_id,
+        payload={
+            "source_state_id": source_state_id,
+            "target_state_id": request.target_state_id,
+            "transition_id": validation_result.transition_id,
+        },
     )
     session.commit()
     session.refresh(updated_work_item)
