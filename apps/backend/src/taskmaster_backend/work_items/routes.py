@@ -325,9 +325,9 @@ def update_project_work_item_route(
     summary="Transition work item",
     description=(
         "Validate and apply a project-scoped workflow transition to a work item. "
-        "This updates only the current workflow state and work item version. Audit "
-        "logging, event dispatch, automation, notifications, and activity feed "
-        "records are handled by later stories."
+        "This updates the current workflow state, increments the work item version, "
+        "and writes audit history. Event dispatch, automation, notifications, and "
+        "activity feed records are handled by later stories."
     ),
 )
 def transition_project_work_item_route(
@@ -367,12 +367,54 @@ def transition_project_work_item_route(
             content=error.model_dump(),
         )
 
+    project = get_project(session, project_id)
+    if project is None:
+        error = _project_not_found_error()
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=error.model_dump(),
+        )
+
+    workspace = session.get(Workspace, project.workspace_id)
+    if workspace is None:
+        error = _project_not_found_error()
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=error.model_dump(),
+        )
+
     source_state_id = work_item.current_state_id
     updated_work_item = transition_work_item(
         session,
         work_item,
         request.target_state_id,
+        commit=False,
     )
+    write_audit_log(
+        session,
+        AuditLogWriteRequest(
+            actor_type="system",
+            organization_id=workspace.organization_id,
+            workspace_id=workspace.id,
+            project_id=project_id,
+            entity_type="work_item",
+            entity_id=updated_work_item.id,
+            action="work_item.transitioned",
+            before_summary={
+                "source_state_id": source_state_id,
+                "current_state_id": source_state_id,
+            },
+            after_summary={
+                "target_state_id": request.target_state_id,
+                "current_state_id": request.target_state_id,
+            },
+            correlation_id=str(uuid4()),
+        ),
+        commit=False,
+    )
+    session.commit()
+    session.refresh(updated_work_item)
+
     return WorkflowTransitionResponse(
         work_item=WorkItemResponse.from_model(updated_work_item),
         transition_id=validation_result.transition_id,

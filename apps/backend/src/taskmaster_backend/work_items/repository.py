@@ -135,10 +135,15 @@ def transition_work_item(
     session: Session,
     work_item: WorkItem,
     target_state_id: str,
+    *,
+    commit: bool = True,
 ) -> WorkItem:
     work_item.current_state_id = target_state_id
     work_item.version += 1
     session.add(work_item)
-    session.commit()
-    session.refresh(work_item)
+
+    if commit:
+        session.commit()
+        session.refresh(work_item)
+
     return work_item
