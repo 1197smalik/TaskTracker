@@ -10,6 +10,10 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from taskmaster_backend.activity.service import (
+    ActivityEventWriteRequest,
+    write_activity_event,
+)
 from taskmaster_backend.audit.service import create_outbox_event
 from taskmaster_backend.collaboration.events import (
     COLLABORATION_EVENT_PAYLOAD_VERSION,
@@ -114,6 +118,7 @@ def create_work_item_comment(
         )
         session.flush()
         mentions = extract_mentions(request.body)
+        mentioned_handles = [mention.handle for mention in mentions]
         recipient_resolution = unresolved_mention_recipients(mentions)
         correlation_id = str(uuid4())
         occurred_at = datetime.now(timezone.utc)
@@ -156,6 +161,24 @@ def create_work_item_comment(
                 ),
                 payload_version=COLLABORATION_EVENT_PAYLOAD_VERSION,
             )
+        write_activity_event(
+            session,
+            ActivityEventWriteRequest(
+                actor_id=principal.subject,
+                project_id=project.id,
+                entity_type="comment",
+                entity_id=comment.id,
+                event_type=COMMENT_CREATED_EVENT_TYPE,
+                summary="Comment added",
+                payload={
+                    "comment_id": comment.id,
+                    "work_item_id": work_item.id,
+                    "mentioned_handles": mentioned_handles,
+                },
+                created_at=occurred_at,
+            ),
+            commit=False,
+        )
         session.commit()
         session.refresh(comment)
     except Exception:

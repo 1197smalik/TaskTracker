@@ -10,6 +10,10 @@ from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from taskmaster_backend.activity.service import (
+    ActivityEventWriteRequest,
+    write_activity_event,
+)
 from taskmaster_backend.audit.service import (
     AuditLogWriteRequest,
     create_outbox_event,
@@ -454,6 +458,24 @@ def transition_project_work_item_route(
             "target_state_id": request.target_state_id,
             "transition_id": validation_result.transition_id,
         },
+    )
+    write_activity_event(
+        session,
+        ActivityEventWriteRequest(
+            actor_id=None,
+            project_id=project_id,
+            entity_type="work_item",
+            entity_id=updated_work_item.id,
+            event_type="work_item.transitioned",
+            summary="Work item transitioned",
+            payload={
+                "source_state_id": source_state_id,
+                "target_state_id": request.target_state_id,
+                "transition_id": validation_result.transition_id,
+            },
+            created_at=now,
+        ),
+        commit=False,
     )
     session.commit()
     session.refresh(updated_work_item)
