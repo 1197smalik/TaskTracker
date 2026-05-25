@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, String
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from taskmaster_backend.db.base import Base
@@ -72,6 +72,54 @@ class AuditLog(Base):
     ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(String(512), nullable=True)
     correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+    )
+
+
+class EntityVersion(Base):
+    """Immutable snapshot of entity state at a point in time."""
+
+    __tablename__ = "entity_versions"
+    __table_args__ = (
+        Index(
+            "ix_entity_versions_entity_type_entity_id_version",
+            "entity_type",
+            "entity_id",
+            "version_number",
+        ),
+        Index(
+            "ix_entity_versions_entity_type_entity_id_created_at",
+            "entity_type",
+            "entity_id",
+            "created_at",
+        ),
+        Index("ix_entity_versions_organization_id_created_at", "organization_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+    audit_log_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("audit_logs.id"),
+        nullable=False,
+        index=True,
+    )
+    entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    entity_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    entity_snapshot: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("organizations.id"),
+        nullable=False,
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
