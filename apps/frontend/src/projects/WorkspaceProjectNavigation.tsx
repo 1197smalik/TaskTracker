@@ -78,6 +78,11 @@ export function ProjectShellPage({ navigation }: WorkspaceProjectNavigationProps
         Route context: workspace {workspaceId ?? "unselected"}, project{" "}
         {projectId ?? "unselected"}.
       </p>
+      {workspaceId !== undefined && projectId !== undefined ? (
+        <Link to={`/workspace/${workspaceId}/projects/${projectId}/work-items`}>
+          View work items
+        </Link>
+      ) : null}
       <p>
         Board, backlog, sprint, epic, milestone, and settings pages are not
         implemented in this navigation shell.
