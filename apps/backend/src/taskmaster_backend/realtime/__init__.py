@@ -1,5 +1,6 @@
 """Realtime/WebSocket domain contracts."""
 
+from taskmaster_backend.realtime.auth import authenticate_websocket_credential
 from taskmaster_backend.realtime.auth_contract import (
     WS_ACCEPTED_AUTH_SUBPROTOCOL,
     WS_BEARER_SUBPROTOCOL_PREFIX,
@@ -17,6 +18,7 @@ __all__ = [
     "WS_INVALID_CREDENTIAL_CLOSE_CODE",
     "WS_MISSING_CREDENTIAL_CLOSE_CODE",
     "WebSocketCredential",
+    "authenticate_websocket_credential",
     "extract_websocket_bearer_token",
     "websocket_auth_uses_query_token",
     "websocket_authorization_boundary",
