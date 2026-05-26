@@ -25,6 +25,7 @@ def test_webhook_endpoint_model_has_expected_columns() -> None:
         "project_filters",
         "is_active",
         "secret_hash",
+        "secret_reference",
         "created_at",
         "updated_at",
     }
@@ -37,6 +38,7 @@ def test_webhook_endpoint_model_has_expected_columns() -> None:
     assert isinstance(columns["project_filters"].type, JSON)
     assert isinstance(columns["is_active"].type, Boolean)
     assert isinstance(columns["secret_hash"].type, String)
+    assert isinstance(columns["secret_reference"].type, String)
     assert isinstance(columns["created_at"].type, DateTime)
     assert isinstance(columns["updated_at"].type, DateTime)
 
@@ -73,6 +75,8 @@ def test_webhook_endpoint_model_does_not_implement_later_webhook_behaviors() -> 
     columns = WebhookEndpoint.__table__.columns
 
     assert "secret" not in columns
+    assert "raw_secret" not in columns
+    assert "plaintext_secret" not in columns
     assert "delivery_id" not in columns
     assert "last_delivery_status" not in columns
     assert "retry_count" not in columns

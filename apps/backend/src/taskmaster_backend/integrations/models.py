@@ -43,6 +43,7 @@ class WebhookEndpoint(Base):
     project_filters: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     secret_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    secret_reference: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
