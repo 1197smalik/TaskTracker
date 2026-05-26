@@ -16,6 +16,14 @@ from taskmaster_backend.realtime.notifications import (
     WebSocketNotificationDispatcher,
     build_notification_created_message,
 )
+from taskmaster_backend.realtime.redis_fanout import (
+    RedisFanoutMessage,
+    RedisPublishClient,
+    RedisRealtimeFanoutAdapter,
+    deserialize_fanout_message,
+    redis_recipient_channel,
+    serialize_fanout_message,
+)
 
 __all__ = [
     "WS_ACCEPTED_AUTH_SUBPROTOCOL",
@@ -24,10 +32,16 @@ __all__ = [
     "WS_MISSING_CREDENTIAL_CLOSE_CODE",
     "WebSocketCredential",
     "RealtimeNotificationConnection",
+    "RedisFanoutMessage",
+    "RedisPublishClient",
+    "RedisRealtimeFanoutAdapter",
     "WebSocketNotificationDispatcher",
     "authenticate_websocket_credential",
     "build_notification_created_message",
+    "deserialize_fanout_message",
     "extract_websocket_bearer_token",
+    "redis_recipient_channel",
+    "serialize_fanout_message",
     "websocket_auth_uses_query_token",
     "websocket_authorization_boundary",
 ]
