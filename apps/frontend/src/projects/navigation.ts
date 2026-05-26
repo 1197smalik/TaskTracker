@@ -1,0 +1,70 @@
+export const WORKSPACE_PROJECT_NAVIGATION_UNAVAILABLE_REASON =
+  "workspace_project_api_not_available";
+
+export type WorkspaceNavigationItem = {
+  id: string;
+  organizationId: string;
+  name: string;
+};
+
+export type ProjectNavigationItem = {
+  id: string;
+  workspaceId: string;
+  key: string;
+  name: string;
+};
+
+export type WorkspaceProjectNavigationState =
+  | {
+      status: "unavailable";
+      reason: typeof WORKSPACE_PROJECT_NAVIGATION_UNAVAILABLE_REASON;
+      selectedWorkspaceId: null;
+      selectedProjectId: null;
+      workspaces: [];
+      projects: [];
+    }
+  | {
+      status: "ready";
+      selectedWorkspaceId: string | null;
+      selectedProjectId: string | null;
+      workspaces: WorkspaceNavigationItem[];
+      projects: ProjectNavigationItem[];
+    };
+
+export function createEmptyWorkspaceProjectNavigation(): WorkspaceProjectNavigationState {
+  return {
+    status: "unavailable",
+    reason: WORKSPACE_PROJECT_NAVIGATION_UNAVAILABLE_REASON,
+    selectedWorkspaceId: null,
+    selectedProjectId: null,
+    workspaces: [],
+    projects: [],
+  };
+}
+
+export function getSelectedWorkspace(
+  navigation: WorkspaceProjectNavigationState
+): WorkspaceNavigationItem | null {
+  if (navigation.selectedWorkspaceId === null) {
+    return null;
+  }
+
+  return (
+    navigation.workspaces.find(
+      (workspace) => workspace.id === navigation.selectedWorkspaceId
+    ) ?? null
+  );
+}
+
+export function getSelectedProject(
+  navigation: WorkspaceProjectNavigationState
+): ProjectNavigationItem | null {
+  if (navigation.selectedProjectId === null) {
+    return null;
+  }
+
+  return (
+    navigation.projects.find((project) => project.id === navigation.selectedProjectId) ??
+    null
+  );
+}

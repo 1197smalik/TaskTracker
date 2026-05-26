@@ -5,14 +5,27 @@ import {
   type AuthSession,
   createAnonymousSession,
 } from "./identity/session";
+import {
+  ProjectShellPage,
+  WorkspaceHomePage,
+  createEmptyWorkspaceProjectNavigation,
+  type WorkspaceProjectNavigationState,
+} from "./projects";
 import { AppShell } from "./routes/AppShell";
 
 export function App() {
   const [session] = useState<AuthSession>(() => createAnonymousSession());
+  const [projectNavigation] = useState<WorkspaceProjectNavigationState>(() =>
+    createEmptyWorkspaceProjectNavigation()
+  );
 
   return (
     <Routes>
-      <Route element={<AppShell session={session} />}>
+      <Route
+        element={
+          <AppShell session={session} projectNavigation={projectNavigation} />
+        }
+      >
         <Route index element={<Navigate replace to="/workspace" />} />
         <Route
           path="/login"
@@ -29,16 +42,11 @@ export function App() {
         />
         <Route
           path="/workspace"
-          element={
-            <section aria-labelledby="workspace-heading">
-              <p>Workspace</p>
-              <h1 id="workspace-heading">Workspace shell</h1>
-              <p>
-                Project navigation will attach here after backend workspace
-                contracts are available.
-              </p>
-            </section>
-          }
+          element={<WorkspaceHomePage navigation={projectNavigation} />}
+        />
+        <Route
+          path="/workspace/:workspaceId/projects/:projectId"
+          element={<ProjectShellPage navigation={projectNavigation} />}
         />
       </Route>
     </Routes>

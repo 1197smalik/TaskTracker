@@ -6,12 +6,17 @@ import {
   describeSessionStatus,
   isAuthenticatedSession,
 } from "../identity/session";
+import {
+  WorkspaceProjectNavigation,
+  type WorkspaceProjectNavigationState,
+} from "../projects";
 
 type AppShellProps = {
   session: AuthSession;
+  projectNavigation: WorkspaceProjectNavigationState;
 };
 
-export function AppShell({ session }: AppShellProps) {
+export function AppShell({ projectNavigation, session }: AppShellProps) {
   const sessionLabel = describeSessionStatus(session);
 
   return (
@@ -30,6 +35,7 @@ export function AppShell({ session }: AppShellProps) {
           </p>
         </section>
       </header>
+      <WorkspaceProjectNavigation navigation={projectNavigation} />
       <main>
         <Outlet />
       </main>
