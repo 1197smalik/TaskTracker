@@ -39,6 +39,13 @@ class WebhookSecretProvider(Protocol):
         """Return raw signing material for one webhook secret reference."""
 
 
+class WebhookSecretIssuer(Protocol):
+    """Create-time secret issuer for webhook management endpoints."""
+
+    def create_webhook_secret(self, webhook_id: str) -> WebhookSecretCreateResult:
+        """Create secret material and storage references for one webhook."""
+
+
 def webhook_secret_response_is_return_once() -> bool:
     """Document that raw webhook secrets are returned only at create/rotation time."""
     return True

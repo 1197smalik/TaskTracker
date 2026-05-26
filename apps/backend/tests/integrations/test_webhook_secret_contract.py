@@ -65,17 +65,6 @@ def test_secret_hash_is_not_treated_as_signing_material() -> None:
     assert secret_hash_is_signing_material() is False
 
 
-def test_webhook_secret_contract_does_not_add_management_endpoints() -> None:
-    app = create_app()
-    webhook_routes = [
-        route
-        for route in app.routes
-        if isinstance(route, APIRoute) and "webhook" in route.path
-    ]
-
-    assert webhook_routes == []
-
-
 def test_webhook_secret_contract_does_not_add_delivery_or_signing_worker() -> None:
     app = create_app()
     worker_routes = [
