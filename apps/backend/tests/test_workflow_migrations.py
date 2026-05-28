@@ -2,13 +2,11 @@
 
 from pathlib import Path
 
-from alembic.config import Config
-from alembic.script import ScriptDirectory
+from alembic_test_utils import load_script_directory
 
 
 def test_workflow_tables_revision_is_registered() -> None:
-    config = Config("alembic.ini")
-    script_directory = ScriptDirectory.from_config(config)
+    script_directory = load_script_directory()
 
     revision = script_directory.get_revision("0011_create_workflow_tables")
 
@@ -17,8 +15,7 @@ def test_workflow_tables_revision_is_registered() -> None:
 
 
 def test_workflow_tables_revision_script_mentions_expected_schema() -> None:
-    config = Config("alembic.ini")
-    script_directory = ScriptDirectory.from_config(config)
+    script_directory = load_script_directory()
     revision = script_directory.get_revision("0011_create_workflow_tables")
     assert revision is not None
 
@@ -63,8 +60,7 @@ def test_workflow_tables_revision_script_mentions_expected_schema() -> None:
 
 
 def test_workflow_tables_revision_downgrade_drops_children_before_parents() -> None:
-    config = Config("alembic.ini")
-    script_directory = ScriptDirectory.from_config(config)
+    script_directory = load_script_directory()
     revision = script_directory.get_revision("0011_create_workflow_tables")
     assert revision is not None
 

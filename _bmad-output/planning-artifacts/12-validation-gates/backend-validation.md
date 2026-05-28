@@ -5,12 +5,12 @@
 > Implementation code: intentionally excluded
 
 ## Required Commands
-- `ruff check .`
-- `mypy .`
-- `pytest`
-- `pytest --cov`
-- `alembic upgrade head`
-- `alembic downgrade -1` for migration stories where feasible
+- `./.venv/bin/ruff check apps/backend/src apps/backend/tests`
+- `./.venv/bin/python -m mypy apps/backend/src apps/backend/tests`
+- `./.venv/bin/python -m pytest apps/backend/tests -q`
+- `./.venv/bin/python -m pytest apps/backend/tests --cov`
+- `cd apps/backend && ../../.venv/bin/alembic upgrade head`
+- `cd apps/backend && ../../.venv/bin/alembic downgrade -1` for migration stories where feasible
 
 ## Critical Test Areas
 - Authentication lifecycle.

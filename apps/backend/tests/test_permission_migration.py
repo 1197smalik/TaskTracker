@@ -2,13 +2,11 @@
 
 from pathlib import Path
 
-from alembic.config import Config
-from alembic.script import ScriptDirectory
+from alembic_test_utils import load_script_directory
 
 
 def test_permissions_table_revision_is_registered() -> None:
-    config = Config("alembic.ini")
-    script_directory = ScriptDirectory.from_config(config)
+    script_directory = load_script_directory()
 
     revision = script_directory.get_revision("0006_create_permissions_table")
 
@@ -17,8 +15,7 @@ def test_permissions_table_revision_is_registered() -> None:
 
 
 def test_permissions_table_revision_script_mentions_expected_columns() -> None:
-    config = Config("alembic.ini")
-    script_directory = ScriptDirectory.from_config(config)
+    script_directory = load_script_directory()
     revision = script_directory.get_revision("0006_create_permissions_table")
     assert revision is not None
 

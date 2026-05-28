@@ -266,8 +266,8 @@ def test_comment_create_denies_missing_permission() -> None:
 
 def test_comment_create_does_not_add_future_collaboration_routes() -> None:
     app = create_app()
-    collaboration_routes = [
-        route
+    collaboration_routes = {
+        (route.path, tuple(sorted(route.methods)))
         for route in app.routes
         if isinstance(route, APIRoute)
         and (
@@ -276,9 +276,16 @@ def test_comment_create_does_not_add_future_collaboration_routes() -> None:
             or "/notifications" in route.path
             or "/activity" in route.path
         )
-    ]
+    }
 
-    assert len(collaboration_routes) == 1
+    assert collaboration_routes == {
+        (
+            "/api/v1/projects/{project_id}/work-items/{work_item_id}/comments",
+            ("POST",),
+        ),
+        ("/api/v1/notifications", ("GET",)),
+        ("/api/v1/notifications/{notification_id}/read", ("POST",)),
+    }
 
 
 def _principal() -> AuthenticatedPrincipal:

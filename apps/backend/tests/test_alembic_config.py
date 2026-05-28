@@ -1,20 +1,22 @@
 """Tests for Alembic configuration wiring."""
 
-from pathlib import Path
-
-from alembic.config import Config
-from alembic.script import ScriptDirectory
+from alembic_test_utils import (
+    MIGRATIONS_DIR,
+    load_alembic_config,
+    load_script_directory,
+)
 
 
 def test_alembic_config_uses_backend_path() -> None:
-    config = Config("alembic.ini")
+    config = load_alembic_config()
 
-    assert config.get_main_option("script_location") == "migrations"
+    assert config.config_file_name is not None
+    assert config.config_file_name.endswith("apps/backend/alembic.ini")
+    assert config.get_main_option("script_location") == str(MIGRATIONS_DIR)
 
 
 def test_alembic_script_directory_loads_baseline_revision() -> None:
-    config = Config("alembic.ini")
-    script_directory = ScriptDirectory.from_config(config)
+    script_directory = load_script_directory()
 
     revision = script_directory.get_revision("0001_baseline")
 
@@ -22,6 +24,6 @@ def test_alembic_script_directory_loads_baseline_revision() -> None:
 
 
 def test_alembic_versions_directory_exists() -> None:
-    versions_dir = Path("migrations") / "versions"
+    versions_dir = MIGRATIONS_DIR / "versions"
 
     assert versions_dir.exists()

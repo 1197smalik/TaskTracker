@@ -31,19 +31,26 @@ def test_api_token_management_requirement_rejects_missing_organization() -> None
 
 def test_api_token_authorization_contract_does_not_add_endpoint_behavior() -> None:
     app = create_app()
-    api_token_routes = [
-        route
+    api_token_routes = {
+        (route.path, tuple(sorted(route.methods)))
         for route in app.routes
         if isinstance(route, APIRoute) and "api-token" in route.path
-    ]
+    }
 
-    assert api_token_routes == []
+    assert api_token_routes == {
+        ("/api/v1/organizations/{organization_id}/api-tokens", ("GET",)),
+        ("/api/v1/organizations/{organization_id}/api-tokens", ("POST",)),
+        (
+            "/api/v1/organizations/{organization_id}/api-tokens/{api_token_id}/revoke",
+            ("POST",),
+        ),
+    }
 
 
 def test_api_token_authorization_contract_does_not_add_management_behavior() -> None:
     app = create_app()
-    management_routes = [
-        route
+    management_routes = {
+        route.path
         for route in app.routes
         if isinstance(route, APIRoute)
         and (
@@ -51,6 +58,11 @@ def test_api_token_authorization_contract_does_not_add_management_behavior() -> 
             or "/api-tokens/" in route.path
             or route.path.endswith("/tokens")
         )
-    ]
+    }
 
-    assert management_routes == []
+    assert management_routes == {
+        "/api/v1/organizations/{organization_id}/api-tokens",
+        "/api/v1/organizations/{organization_id}/api-tokens/{api_token_id}/revoke",
+    }
+    assert "/api/v1/tokens" not in management_routes
+    assert "/api/v1/api-tokens" not in management_routes

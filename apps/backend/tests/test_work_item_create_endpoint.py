@@ -172,4 +172,10 @@ def test_work_item_routes_do_not_add_delete_or_parent_child_endpoints() -> None:
     assert collection_methods == {"GET", "POST"}
     assert detail_methods == {"GET", "PATCH"}
     assert transition_methods == {"POST"}
-    assert len(work_item_routes) == 5
+    route_paths = {route.path for route in work_item_routes}
+
+    assert "/api/v1/projects/{project_id}/work-items/{work_item_id}/comments" in route_paths
+    assert "/api/v1/projects/{project_id}/work-items/{work_item_id}/attachments" in route_paths
+    assert "/api/v1/projects/{project_id}/work-items/{work_item_id}/children" not in route_paths
+    assert "/api/v1/projects/{project_id}/work-items/{work_item_id}/parent" not in route_paths
+    assert all("DELETE" not in route.methods for route in work_item_routes)

@@ -2,13 +2,11 @@
 
 from pathlib import Path
 
-from alembic.config import Config
-from alembic.script import ScriptDirectory
+from alembic_test_utils import load_script_directory
 
 
 def test_workflow_project_assignment_revision_is_registered() -> None:
-    config = Config("alembic.ini")
-    script_directory = ScriptDirectory.from_config(config)
+    script_directory = load_script_directory()
 
     revision = script_directory.get_revision("0012_assign_workflows_to_projects")
 
@@ -17,8 +15,7 @@ def test_workflow_project_assignment_revision_is_registered() -> None:
 
 
 def test_workflow_project_assignment_revision_mentions_expected_schema() -> None:
-    config = Config("alembic.ini")
-    script_directory = ScriptDirectory.from_config(config)
+    script_directory = load_script_directory()
     revision = script_directory.get_revision("0012_assign_workflows_to_projects")
     assert revision is not None
 
