@@ -6,6 +6,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from taskmaster_backend.workflows.models import WorkflowState
+
 
 class ProjectApiErrorResponse(BaseModel):
     error_code: str
@@ -62,3 +64,22 @@ class ProjectVersionResponse(BaseModel):
 
 class ProjectVersionListResponse(BaseModel):
     items: list[ProjectVersionResponse]
+
+
+class ProjectWorkflowStateResponse(BaseModel):
+    id: str
+    name: str
+    position: int
+
+    @classmethod
+    def from_model(cls, workflow_state: WorkflowState) -> "ProjectWorkflowStateResponse":
+        return cls(
+            id=workflow_state.id,
+            name=workflow_state.name,
+            position=workflow_state.position,
+        )
+
+
+class ProjectWorkflowStateCatalogResponse(BaseModel):
+    workflow_definition_id: str
+    states: list[ProjectWorkflowStateResponse]

@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
 
+from taskmaster_backend.db.session import get_db_session
 from taskmaster_backend.projects.schemas import (
     ProjectApiErrorResponse,
     ProjectComponentCreateRequest,
@@ -18,6 +20,14 @@ from taskmaster_backend.projects.schemas import (
     ProjectVersionCreateRequest,
     ProjectVersionListResponse,
     ProjectVersionResponse,
+    ProjectWorkflowStateCatalogResponse,
+    ProjectWorkflowStateResponse,
+)
+from taskmaster_backend.workflows.repository import (
+    PROJECT_NOT_FOUND,
+    WORKFLOW_ASSIGNMENT_NOT_FOUND,
+    WORKFLOW_DEFINITION_NOT_FOUND,
+    list_project_workflow_state_catalog,
 )
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -62,6 +72,85 @@ def _versions_not_implemented_error() -> ProjectApiErrorResponse:
             ),
         },
         correlation_id=str(uuid4()),
+    )
+
+
+def _project_not_found_error() -> ProjectApiErrorResponse:
+    return ProjectApiErrorResponse(
+        error_code="project_not_found",
+        message="Project was not found or is inaccessible.",
+        correlation_id=str(uuid4()),
+    )
+
+
+def _workflow_assignment_not_found_error() -> ProjectApiErrorResponse:
+    return ProjectApiErrorResponse(
+        error_code="workflow_assignment_not_found",
+        message="Project does not have an assigned workflow.",
+        correlation_id=str(uuid4()),
+    )
+
+
+def _workflow_definition_not_found_error() -> ProjectApiErrorResponse:
+    return ProjectApiErrorResponse(
+        error_code="workflow_definition_not_found",
+        message="Assigned workflow definition was not found or is inaccessible.",
+        correlation_id=str(uuid4()),
+    )
+
+
+@router.get(
+    "/{project_id}/workflow-states",
+    response_model=ProjectWorkflowStateCatalogResponse,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "model": ProjectApiErrorResponse,
+            "description": "Project workflow state catalog was not found.",
+        },
+    },
+    summary="List project workflow states",
+    description=(
+        "List the backend-owned ordered workflow states for a project's assigned "
+        "workflow. This exposes board column mapping inputs only; transition "
+        "legality, permissions, board preferences, and workflow editing are handled "
+        "by separate contracts."
+    ),
+)
+def list_project_workflow_states_route(
+    project_id: str,
+    session: Session = Depends(get_db_session),
+) -> ProjectWorkflowStateCatalogResponse | JSONResponse:
+    workflow_definition, workflow_states, error = list_project_workflow_state_catalog(
+        session,
+        project_id,
+    )
+
+    if error == PROJECT_NOT_FOUND:
+        response_error = _project_not_found_error()
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=response_error.model_dump(),
+        )
+    if error == WORKFLOW_ASSIGNMENT_NOT_FOUND:
+        response_error = _workflow_assignment_not_found_error()
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=response_error.model_dump(),
+        )
+    if error == WORKFLOW_DEFINITION_NOT_FOUND:
+        response_error = _workflow_definition_not_found_error()
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=response_error.model_dump(),
+        )
+
+    assert workflow_definition is not None
+    return ProjectWorkflowStateCatalogResponse(
+        workflow_definition_id=workflow_definition.id,
+        states=[
+            ProjectWorkflowStateResponse.from_model(workflow_state)
+            for workflow_state in workflow_states
+        ],
     )
 
 

@@ -17,6 +17,7 @@ from taskmaster_backend.workflows.models import (
 
 PROJECT_NOT_FOUND = "project_not_found"
 WORKFLOW_DEFINITION_NOT_FOUND = "workflow_definition_not_found"
+WORKFLOW_ASSIGNMENT_NOT_FOUND = "workflow_assignment_not_found"
 
 
 def get_project(session: Session, project_id: str) -> Project | None:
@@ -67,6 +68,48 @@ def get_workflow_state(
         WorkflowState.id == state_id,
     )
     return session.scalars(statement).one_or_none()
+
+
+def list_workflow_states(
+    session: Session,
+    workflow_definition_id: str,
+) -> list[WorkflowState]:
+    statement = (
+        select(WorkflowState)
+        .where(WorkflowState.workflow_definition_id == workflow_definition_id)
+        .order_by(
+            WorkflowState.position.asc(),
+            WorkflowState.name.asc(),
+            WorkflowState.id.asc(),
+        )
+    )
+    return list(session.scalars(statement).all())
+
+
+def list_project_workflow_state_catalog(
+    session: Session,
+    project_id: str,
+) -> tuple[WorkflowDefinition | None, list[WorkflowState], str | None]:
+    if get_project(session, project_id) is None:
+        return None, [], PROJECT_NOT_FOUND
+
+    assignment = get_project_workflow_assignment(session, project_id)
+    if assignment is None:
+        return None, [], WORKFLOW_ASSIGNMENT_NOT_FOUND
+
+    workflow_definition = get_project_workflow_definition(
+        session,
+        project_id,
+        assignment.workflow_definition_id,
+    )
+    if workflow_definition is None:
+        return None, [], WORKFLOW_DEFINITION_NOT_FOUND
+
+    return (
+        workflow_definition,
+        list_workflow_states(session, workflow_definition.id),
+        None,
+    )
 
 
 def get_workflow_transition(
