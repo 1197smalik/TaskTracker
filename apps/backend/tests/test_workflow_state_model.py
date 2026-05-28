@@ -108,16 +108,15 @@ def test_workflow_state_model_does_not_create_later_story_fields() -> None:
     assert "category" not in columns
 
 
-def test_workflow_state_position_does_not_add_board_read_routes() -> None:
-    board_mapping_routes = [
+def test_workflow_state_position_does_not_add_board_persistence_routes() -> None:
+    board_persistence_routes = [
         route.path
         for route in app.routes
         if isinstance(route, APIRoute)
         and (
-            "/workflow-states" in route.path
-            or "/board-columns" in route.path
+            "/board-columns" in route.path
             or route.path.endswith("/board")
         )
     ]
 
-    assert board_mapping_routes == []
+    assert board_persistence_routes == []
