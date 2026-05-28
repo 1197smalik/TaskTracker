@@ -53,12 +53,14 @@ def test_high_cardinality_or_sensitive_labels_are_forbidden() -> None:
     assert set(PROMETHEUS_HTTP_LABELS).isdisjoint(PROMETHEUS_FORBIDDEN_LABELS)
 
 
-def test_prometheus_metrics_endpoint_is_not_implemented_yet() -> None:
+def test_prometheus_metrics_endpoint_is_registered_outside_versioned_api() -> None:
     app = create_app()
     metric_routes = [
-        route.path
+        route
         for route in app.routes
         if isinstance(route, APIRoute) and route.path == METRICS_ENDPOINT_PATH
     ]
 
-    assert metric_routes == []
+    assert len(metric_routes) == 1
+    assert metric_routes[0].path == METRICS_ENDPOINT_PATH
+    assert metric_routes[0].include_in_schema is False
