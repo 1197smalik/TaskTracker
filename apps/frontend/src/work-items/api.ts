@@ -3,6 +3,21 @@ export type WorkItemListParams = {
   offset: number;
 };
 
+export type WorkflowTransitionRequest = {
+  expected_version: number;
+  target_state_id: string;
+  source_state_id?: string | null;
+};
+
+export type WorkItemApiErrorResponse = {
+  error_code: string;
+  message: string;
+  details: Record<string, string>;
+  correlation_id: string;
+  field_errors: Record<string, string[]>;
+  retry_after: number | null;
+};
+
 export type WorkItemResponse = {
   id: string;
   project_id: string;
@@ -32,6 +47,24 @@ export type WorkItemListResponse = {
   offset: number;
 };
 
+export type WorkflowTransitionResponse = {
+  work_item: WorkItemResponse;
+  transition_id: string;
+  source_state_id: string;
+  target_state_id: string;
+};
+
+export type WorkItemTransitionResult =
+  | {
+      status: "succeeded";
+      response: WorkflowTransitionResponse;
+    }
+  | {
+      status: "failed";
+      statusCode: number;
+      error: WorkItemApiErrorResponse | null;
+    };
+
 export function buildProjectWorkItemListUrl(
   projectId: string,
   params: WorkItemListParams
@@ -57,4 +90,51 @@ export function buildProjectWorkItemDetailPath(
   workItemId: string
 ): string {
   return `/workspace/${encodeURIComponent(workspaceId)}/projects/${encodeURIComponent(projectId)}/work-items/${encodeURIComponent(workItemId)}`;
+}
+
+export function buildProjectWorkItemTransitionUrl(
+  projectId: string,
+  workItemId: string
+): string {
+  return `/api/v1/projects/${encodeURIComponent(projectId)}/work-items/${encodeURIComponent(workItemId)}/transition`;
+}
+
+export async function transitionProjectWorkItem(
+  projectId: string,
+  workItemId: string,
+  request: WorkflowTransitionRequest
+): Promise<WorkItemTransitionResult> {
+  const response = await fetch(buildProjectWorkItemTransitionUrl(projectId, workItemId), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (response.ok) {
+    const payload = (await response.json()) as WorkflowTransitionResponse;
+    return {
+      status: "succeeded",
+      response: payload,
+    };
+  }
+
+  const error = await parseWorkItemTransitionError(response);
+  return {
+    status: "failed",
+    statusCode: response.status,
+    error,
+  };
+}
+
+async function parseWorkItemTransitionError(
+  response: Response
+): Promise<WorkItemApiErrorResponse | null> {
+  const contentType = response.headers.get("content-type");
+  if (contentType === null || !contentType.includes("application/json")) {
+    return null;
+  }
+
+  return (await response.json()) as WorkItemApiErrorResponse;
 }
