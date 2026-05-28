@@ -30,3 +30,5 @@ playwright-report/
 
 # Logs
 *.log
+.claude/
+.github/
