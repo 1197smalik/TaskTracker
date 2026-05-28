@@ -47,6 +47,17 @@ export type WorkItemListResponse = {
   offset: number;
 };
 
+export type ProjectWorkflowStateResponse = {
+  id: string;
+  name: string;
+  position: number;
+};
+
+export type ProjectWorkflowStateCatalogResponse = {
+  workflow_definition_id: string;
+  states: ProjectWorkflowStateResponse[];
+};
+
 export type WorkflowTransitionResponse = {
   work_item: WorkItemResponse;
   transition_id: string;
@@ -90,6 +101,17 @@ export function buildProjectWorkItemDetailPath(
   workItemId: string
 ): string {
   return `/workspace/${encodeURIComponent(workspaceId)}/projects/${encodeURIComponent(projectId)}/work-items/${encodeURIComponent(workItemId)}`;
+}
+
+export function buildProjectBoardPath(
+  workspaceId: string,
+  projectId: string
+): string {
+  return `/workspace/${encodeURIComponent(workspaceId)}/projects/${encodeURIComponent(projectId)}/board`;
+}
+
+export function buildProjectWorkflowStatesUrl(projectId: string): string {
+  return `/api/v1/projects/${encodeURIComponent(projectId)}/workflow-states`;
 }
 
 export function buildProjectWorkItemTransitionUrl(
