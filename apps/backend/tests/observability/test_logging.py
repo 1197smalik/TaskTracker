@@ -54,7 +54,8 @@ def test_structured_logging_middleware_logs_completed_request(
     assert payload["route"] == "/api/v1/health"
     assert payload["status_code"] == 200
     assert payload["error_classification"] is None
-    assert payload["correlation_id"] is None
+    assert isinstance(payload["correlation_id"], str)
+    assert payload["correlation_id"] != ""
     assert payload["actor_id"] is None
     assert payload["workspace_id"] is None
     assert payload["project_id"] is None
@@ -79,7 +80,8 @@ def test_structured_logging_middleware_logs_server_errors(
     assert payload["route"] == "/api/v1/boom"
     assert payload["status_code"] == 500
     assert payload["error_classification"] == "server_error"
-    assert payload["correlation_id"] is None
+    assert isinstance(payload["correlation_id"], str)
+    assert payload["correlation_id"] != ""
     assert payload["exception_type"] == "RuntimeError"
     assert "boom" not in payload
 

@@ -6,6 +6,7 @@ import json
 import logging
 from time import perf_counter
 from typing import Any
+from uuid import uuid4
 
 from fastapi import FastAPI, Request
 
@@ -19,6 +20,9 @@ def add_structured_logging_middleware(app: FastAPI) -> None:
     async def structured_logging_middleware(request: Request, call_next: Any) -> Any:
         start = perf_counter()
         route_path = request.url.path
+        request.state.correlation_id = request.headers.get("x-correlation-id") or str(
+            uuid4()
+        )
 
         try:
             response = await call_next(request)
@@ -36,6 +40,7 @@ def add_structured_logging_middleware(app: FastAPI) -> None:
 
         resolved_route = request.scope.get("route")
         route_path = getattr(resolved_route, "path", route_path)
+        response.headers["X-Correlation-ID"] = request.state.correlation_id
         _log_request(
             request=request,
             route_path=route_path,
@@ -65,7 +70,6 @@ def _log_request(
         "route": route_path,
         "status_code": status_code,
         "latency_ms": round(latency_ms, 3),
-        # TM-092 will populate and propagate this value.
         "correlation_id": getattr(request.state, "correlation_id", None),
         "actor_id": None,
         "workspace_id": None,
