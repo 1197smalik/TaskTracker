@@ -1,5 +1,10 @@
+export { WorkItemDetailPage, WorkItemDetailView } from "./WorkItemDetailPage";
 export { WorkItemListPage, WorkItemListView } from "./WorkItemListPage";
-export { buildProjectWorkItemListUrl } from "./api";
+export {
+  buildProjectWorkItemDetailPath,
+  buildProjectWorkItemDetailUrl,
+  buildProjectWorkItemListUrl,
+} from "./api";
 export type {
   WorkItemListParams,
   WorkItemListResponse,

@@ -1,6 +1,7 @@
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import {
+  buildProjectWorkItemDetailPath,
   type WorkItemListResponse,
   buildProjectWorkItemListUrl,
 } from "./api";
@@ -23,7 +24,7 @@ const unloadedWorkItemListState: WorkItemListPageState = {
 };
 
 export function WorkItemListPage() {
-  const { projectId } = useParams();
+  const { projectId, workspaceId } = useParams();
   const listUrl =
     projectId === undefined
       ? null
@@ -37,12 +38,26 @@ export function WorkItemListPage() {
       <p>Work items</p>
       <h1 id="work-item-list-heading">Project work items</h1>
       {listUrl !== null ? <p>List contract: {listUrl}</p> : null}
-      <WorkItemListView state={unloadedWorkItemListState} />
+      <WorkItemListView
+        projectId={projectId}
+        state={unloadedWorkItemListState}
+        workspaceId={workspaceId}
+      />
     </section>
   );
 }
 
-export function WorkItemListView({ state }: { state: WorkItemListPageState }) {
+type WorkItemListViewProps = {
+  state: WorkItemListPageState;
+  workspaceId: string | undefined;
+  projectId: string | undefined;
+};
+
+export function WorkItemListView({
+  projectId,
+  state,
+  workspaceId,
+}: WorkItemListViewProps) {
   if (state.status === "not_configured") {
     return (
       <p>
@@ -75,7 +90,21 @@ export function WorkItemListView({ state }: { state: WorkItemListPageState }) {
         {state.response.items.map((item) => (
           <tr key={item.id}>
             <td>{item.type}</td>
-            <td>{item.title}</td>
+            <td>
+              {workspaceId !== undefined && projectId !== undefined ? (
+                <Link
+                  to={buildProjectWorkItemDetailPath(
+                    workspaceId,
+                    projectId,
+                    item.id
+                  )}
+                >
+                  {item.title}
+                </Link>
+              ) : (
+                item.title
+              )}
+            </td>
             <td>{item.status}</td>
             <td>{item.priority ?? "Unprioritized"}</td>
             <td>{item.updated_at}</td>

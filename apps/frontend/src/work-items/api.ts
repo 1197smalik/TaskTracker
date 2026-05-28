@@ -43,3 +43,18 @@ export function buildProjectWorkItemListUrl(
 
   return `/api/v1/projects/${encodeURIComponent(projectId)}/work-items?${query}`;
 }
+
+export function buildProjectWorkItemDetailUrl(
+  projectId: string,
+  workItemId: string
+): string {
+  return `/api/v1/projects/${encodeURIComponent(projectId)}/work-items/${encodeURIComponent(workItemId)}`;
+}
+
+export function buildProjectWorkItemDetailPath(
+  workspaceId: string,
+  projectId: string,
+  workItemId: string
+): string {
+  return `/workspace/${encodeURIComponent(workspaceId)}/projects/${encodeURIComponent(projectId)}/work-items/${encodeURIComponent(workItemId)}`;
+}

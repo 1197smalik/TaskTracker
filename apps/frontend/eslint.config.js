@@ -7,7 +7,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 
 export default [
   {
-    ignores: ["dist"],
+    ignores: ["dist", "node_modules"],
   },
   js.configs.recommended,
   {
@@ -30,6 +30,12 @@ export default [
       ...tsPlugin.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": "off",
+    },
+  },
+  {
+    files: ["tests/**/*.test.mjs"],
+    languageOptions: {
+      globals: globals.node,
     },
   },
 ];

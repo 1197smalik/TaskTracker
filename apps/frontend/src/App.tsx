@@ -12,7 +12,7 @@ import {
   type WorkspaceProjectNavigationState,
 } from "./projects";
 import { AppShell } from "./routes/AppShell";
-import { WorkItemListPage } from "./work-items";
+import { WorkItemDetailPage, WorkItemListPage } from "./work-items";
 
 export function App() {
   const [session] = useState<AuthSession>(() => createAnonymousSession());
@@ -52,6 +52,10 @@ export function App() {
         <Route
           path="/workspace/:workspaceId/projects/:projectId/work-items"
           element={<WorkItemListPage />}
+        />
+        <Route
+          path="/workspace/:workspaceId/projects/:projectId/work-items/:workItemId"
+          element={<WorkItemDetailPage />}
         />
       </Route>
     </Routes>
