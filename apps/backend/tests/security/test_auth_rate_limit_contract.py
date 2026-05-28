@@ -74,12 +74,8 @@ def test_current_contract_only_auth_stubs_are_in_rate_limit_scope() -> None:
     assert RATE_LIMIT_APPLIES_TO_CURRENT_AUTH_STUBS is True
 
 
-def test_tm096_rate_limit_middleware_is_not_implemented_yet() -> None:
+def test_tm096_rate_limit_middleware_protects_current_auth_stubs() -> None:
     app = create_app()
-    middleware_names = {str(middleware.cls) for middleware in app.user_middleware}
-
-    assert not any("RateLimitMiddleware" in name for name in middleware_names)
-
     client = TestClient(app)
     login_responses = [
         client.post(
@@ -89,8 +85,7 @@ def test_tm096_rate_limit_middleware_is_not_implemented_yet() -> None:
         for _ in range(LOGIN_RATE_LIMIT_POLICY.attempts + 1)
     ]
 
-    assert {response.status_code for response in login_responses} == {501}
-    assert all(
-        RATE_LIMIT_RETRY_AFTER_HEADER not in response.headers
-        for response in login_responses
-    )
+    assert [response.status_code for response in login_responses[:5]] == [501] * 5
+    limited_response = login_responses[5]
+    assert limited_response.status_code == RATE_LIMIT_STATUS_CODE
+    assert RATE_LIMIT_RETRY_AFTER_HEADER in limited_response.headers
