@@ -80,10 +80,19 @@ class WorkflowState(Base):
             "name",
             name="uq_workflow_states_workflow_definition_id_name",
         ),
+        CheckConstraint(
+            "position >= 0",
+            name="ck_workflow_states_position_non_negative",
+        ),
         Index(
             "ix_workflow_states_workflow_definition_id_name",
             "workflow_definition_id",
             "name",
+        ),
+        Index(
+            "ix_workflow_states_workflow_definition_id_position",
+            "workflow_definition_id",
+            "position",
         ),
     )
 
@@ -99,6 +108,12 @@ class WorkflowState(Base):
         index=True,
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    position: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
