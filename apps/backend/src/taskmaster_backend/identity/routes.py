@@ -24,6 +24,10 @@ router = APIRouter(prefix="/auth", tags=["identity"])
     "/login",
     response_model=LoginResponse,
     responses={
+        status.HTTP_429_TOO_MANY_REQUESTS: {
+            "model": ApiErrorResponse,
+            "description": "Login rate limit exceeded.",
+        },
         status.HTTP_501_NOT_IMPLEMENTED: {
             "model": ApiErrorResponse,
             "description": "Authentication is defined but not implemented yet.",
@@ -54,6 +58,10 @@ def login(_request: LoginRequest) -> JSONResponse:
     "/refresh",
     response_model=RefreshTokenResponse,
     responses={
+        status.HTTP_429_TOO_MANY_REQUESTS: {
+            "model": ApiErrorResponse,
+            "description": "Refresh token rate limit exceeded.",
+        },
         status.HTTP_501_NOT_IMPLEMENTED: {
             "model": ApiErrorResponse,
             "description": "Refresh token exchange is defined but not implemented yet.",

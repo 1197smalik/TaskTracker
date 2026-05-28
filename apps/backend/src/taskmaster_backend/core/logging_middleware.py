@@ -106,6 +106,10 @@ def _classify_status(status_code: int) -> str | None:
 
 
 def _resolve_route_template(request: Request) -> str:
+    overridden_route = getattr(request.state, "resolved_route_template", None)
+    if isinstance(overridden_route, str):
+        return overridden_route
+
     resolved_route = request.scope.get("route")
     route_path = getattr(resolved_route, "path", None)
     if isinstance(route_path, str):
