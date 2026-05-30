@@ -9,6 +9,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from taskmaster_backend.db.session import get_db_session
+from taskmaster_backend.identity.models import Workspace
+from taskmaster_backend.projects.models import Project
 from taskmaster_backend.projects.schemas import (
     ProjectApiErrorResponse,
     ProjectComponentCreateRequest,
@@ -17,11 +19,15 @@ from taskmaster_backend.projects.schemas import (
     ProjectLabelCreateRequest,
     ProjectLabelListResponse,
     ProjectLabelResponse,
+    ProjectNavigationListResponse,
+    ProjectNavigationResponse,
     ProjectVersionCreateRequest,
     ProjectVersionListResponse,
     ProjectVersionResponse,
     ProjectWorkflowStateCatalogResponse,
     ProjectWorkflowStateResponse,
+    WorkspaceNavigationListResponse,
+    WorkspaceNavigationResponse,
 )
 from taskmaster_backend.workflows.repository import (
     PROJECT_NOT_FOUND,
@@ -31,6 +37,69 @@ from taskmaster_backend.workflows.repository import (
 )
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+
+
+@router.get(
+    "/workspaces",
+    response_model=WorkspaceNavigationListResponse,
+    summary="List workspaces for local navigation",
+    description=(
+        "List minimal workspace navigation records for local manual frontend "
+        "navigation. Membership filtering and authorization-backed scoping are "
+        "intentionally not inferred by this contract."
+    ),
+)
+def list_workspaces_route(
+    session: Session = Depends(get_db_session),
+) -> WorkspaceNavigationListResponse:
+    workspaces = (
+        session.query(Workspace)
+        .order_by(Workspace.name.asc(), Workspace.id.asc())
+        .all()
+    )
+    return WorkspaceNavigationListResponse(
+        items=[
+            WorkspaceNavigationResponse(
+                id=workspace.id,
+                organization_id=workspace.organization_id,
+                name=workspace.name,
+            )
+            for workspace in workspaces
+        ]
+    )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/projects",
+    response_model=ProjectNavigationListResponse,
+    summary="List projects for a workspace for local navigation",
+    description=(
+        "List minimal project navigation records for a selected workspace. "
+        "Membership filtering and authorization-backed scoping are intentionally "
+        "not inferred by this contract."
+    ),
+)
+def list_workspace_projects_route(
+    workspace_id: str,
+    session: Session = Depends(get_db_session),
+) -> ProjectNavigationListResponse:
+    projects = (
+        session.query(Project)
+        .filter(Project.workspace_id == workspace_id)
+        .order_by(Project.key.asc(), Project.id.asc())
+        .all()
+    )
+    return ProjectNavigationListResponse(
+        items=[
+            ProjectNavigationResponse(
+                id=project.id,
+                workspace_id=project.workspace_id,
+                key=project.key,
+                name=project.name,
+            )
+            for project in projects
+        ]
+    )
 
 
 def _labels_not_implemented_error() -> ProjectApiErrorResponse:

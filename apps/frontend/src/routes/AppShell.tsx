@@ -12,11 +12,18 @@ import {
 } from "../projects";
 
 type AppShellProps = {
+  onProjectSelect: (projectId: string | null) => void;
+  onWorkspaceSelect: (workspaceId: string | null) => void;
   session: AuthSession;
   projectNavigation: WorkspaceProjectNavigationState;
 };
 
-export function AppShell({ projectNavigation, session }: AppShellProps) {
+export function AppShell({
+  onProjectSelect,
+  onWorkspaceSelect,
+  projectNavigation,
+  session,
+}: AppShellProps) {
   const sessionLabel = describeSessionStatus(session);
 
   return (
@@ -35,7 +42,11 @@ export function AppShell({ projectNavigation, session }: AppShellProps) {
           </p>
         </section>
       </header>
-      <WorkspaceProjectNavigation navigation={projectNavigation} />
+      <WorkspaceProjectNavigation
+        navigation={projectNavigation}
+        onProjectSelect={onProjectSelect}
+        onWorkspaceSelect={onWorkspaceSelect}
+      />
       <main>
         <Outlet />
       </main>

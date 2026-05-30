@@ -18,6 +18,27 @@ class ProjectApiErrorResponse(BaseModel):
     retry_after: int | None = None
 
 
+class WorkspaceNavigationResponse(BaseModel):
+    id: str
+    organization_id: str
+    name: str
+
+
+class WorkspaceNavigationListResponse(BaseModel):
+    items: list[WorkspaceNavigationResponse]
+
+
+class ProjectNavigationResponse(BaseModel):
+    id: str
+    workspace_id: str
+    key: str
+    name: str
+
+
+class ProjectNavigationListResponse(BaseModel):
+    items: list[ProjectNavigationResponse]
+
+
 class ProjectLabelCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=255)
 

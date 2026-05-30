@@ -14,18 +14,26 @@ test("workspace/project navigation starts from an explicit unavailable state", a
   assert.match(navigationSource, /status: "unavailable"/);
   assert.match(navigationSource, /workspaces: \[\]/);
   assert.match(navigationSource, /projects: \[\]/);
-  assert.doesNotMatch(navigationSource, /localStorage|sessionStorage|fetch\(/);
+  assert.doesNotMatch(navigationSource, /localStorage|sessionStorage/);
 });
 
-test("workspace/project shell does not fake authorization or persistence", async () => {
+test("workspace/project shell keeps selection local and explicit", async () => {
   const componentSource = await readText(
     "src/projects/WorkspaceProjectNavigation.tsx"
   );
   const appSource = await readText("src/App.tsx");
+  const navigationSource = await readText("src/projects/navigation.ts");
 
-  assert.match(componentSource, /No frontend authorization or membership lookup is inferred/);
-  assert.match(componentSource, /backend workspace\/project list APIs exist/);
+  assert.match(componentSource, /aria-label="Workspace selector"/);
+  assert.match(componentSource, /aria-label="Project selector"/);
+  assert.match(componentSource, /No membership lookup or authorization inference is applied/);
+  assert.match(componentSource, /No projects are available for the selected workspace/);
+  assert.match(appSource, /fetchWorkspaceNavigation/);
+  assert.match(appSource, /fetchProjectNavigation/);
+  assert.match(appSource, /updateSelectedWorkspace/);
+  assert.match(appSource, /updateSelectedProject/);
   assert.match(appSource, /createEmptyWorkspaceProjectNavigation/);
   assert.match(appSource, /\/workspace\/:workspaceId\/projects\/:projectId/);
+  assert.match(navigationSource, /\/api\/v1\/projects\/workspaces/);
   assert.doesNotMatch(componentSource, /admin|role|permission|capability/i);
 });
