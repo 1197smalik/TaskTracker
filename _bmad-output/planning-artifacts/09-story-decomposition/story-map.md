@@ -831,6 +831,23 @@ Each story is intentionally small enough for autonomous execution, review, and r
 - Tests or validation evidence are included for the changed behavior.
 - Documentation or contract updates are included where required.
 **Validation Commands:** `npx playwright test`
+### TM-090A: Create workspace and project selection contracts for local frontend navigation
+**Estimate:** 30–90 minutes
+**Dependencies:** TM-011, TM-013, TM-015, TM-084, TM-088
+**Acceptance Criteria:**
+- Backend exposes a minimal workspace list contract.
+- Backend exposes a minimal workspace-scoped project list contract.
+- Frontend can display a workspace selector.
+- Frontend can display a project selector.
+- Selecting workspace and project updates local UI context.
+- Empty states remain explicit.
+- No login, membership, authorization inference, workspace creation, or project creation is implemented.
+- The security limitation is documented: this contract is local manual-navigation enablement until membership- and RBAC-backed listing exists.
+- The change is isolated, reviewable, and does not introduce implementation outside its scope.
+- Domain boundaries are respected.
+- Tests or validation evidence are included for the changed behavior.
+- Documentation or contract updates are included where required.
+**Validation Commands:** `ruff check <changed_backend_files> && mypy <changed_backend_files> && pytest <changed_backend_tests> && npm run lint -- <changed_frontend_files> && npm run typecheck && npm run test -- <changed_frontend_tests> && npm run build`
 ### TM-091: Add structured logging middleware
 **Estimate:** 30–90 minutes  
 **Dependencies:** TM-002  
@@ -921,4 +938,3 @@ Each story is intentionally small enough for autonomous execution, review, and r
 - Tests or validation evidence are included for the changed behavior.
 - Documentation or contract updates are included where required.
 **Validation Commands:** `pytest tests/smoke && npx playwright test smoke`
-

@@ -23,6 +23,7 @@ Execute one story per branch. Keep branches small. Do not combine unrelated stor
 - Parallel work is allowed only when stories do not touch the same schema/module boundaries.
 - Schema migrations should be serialized unless carefully reviewed.
 - API contract changes should be merged before dependent frontend stories.
+- TM-090A is a bridge story for local frontend navigation and should land before frontend stories that require selected workspace/project context.
 - Security-sensitive work must receive stricter review.
 
 ## Blocker Handling
