@@ -1,0 +1,8 @@
+title = "TaskMaster gitleaks configuration"
+
+[extend]
+useDefault = true
+
+# TM-097 policy: keep the allowlist empty by default. If a future story adds an
+# exception, it must remain explicit, file-based, and include reason, owner,
+# and review or expiry metadata in the entry description.

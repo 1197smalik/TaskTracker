@@ -1,0 +1,118 @@
+name: validation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - revamp
+  push:
+    branches:
+      - main
+      - revamp
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-and-secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Install Python scanner inputs
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pip-audit
+          python -m pip install --editable "apps/backend[dev]"
+
+      - name: Audit Python dependencies
+        run: |
+          pip-audit --local --format=json --output=python-audit.json || true
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          report = json.loads(pathlib.Path("python-audit.json").read_text(encoding="utf-8"))
+          dependencies = report.get("dependencies", report) if isinstance(report, dict) else report
+
+          def severities_for(vuln):
+              candidates = []
+              for source in (
+                  vuln.get("severity"),
+                  vuln.get("database_specific", {}).get("severity"),
+              ):
+                  if isinstance(source, str):
+                      candidates.append(source)
+                  elif isinstance(source, dict):
+                      value = source.get("severity")
+                      if isinstance(value, str):
+                          candidates.append(value)
+                  elif isinstance(source, list):
+                      for item in source:
+                          if isinstance(item, str):
+                              candidates.append(item)
+                          elif isinstance(item, dict):
+                              value = item.get("severity")
+                              if isinstance(value, str):
+                                  candidates.append(value)
+              return {value.lower() for value in candidates if value}
+
+          blocking = []
+          for dependency in dependencies:
+              name = dependency.get("name", "<unknown>")
+              version = dependency.get("version", "<unknown>")
+              for vuln in dependency.get("vulns", []):
+                  severities = severities_for(vuln)
+                  if severities.intersection({"high", "critical"}) or not severities:
+                      blocking.append(
+                          {
+                              "dependency": f"{name}=={version}",
+                              "id": vuln.get("id", "<unknown>"),
+                              "severities": sorted(severities) or ["unknown"],
+                          }
+                      )
+
+          if blocking:
+              print("Blocking Python vulnerabilities detected:")
+              for item in blocking:
+                  print(
+                      f"- {item['dependency']} {item['id']} severity={','.join(item['severities'])}"
+                  )
+              sys.exit(1)
+
+          print("No blocking high/critical Python vulnerabilities detected.")
+          PY
+
+      - name: Install frontend dependencies
+        working-directory: apps/frontend
+        run: npm ci
+
+      - name: Audit Node dependencies
+        working-directory: apps/frontend
+        run: npm audit --audit-level=high
+
+      - name: Run secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          config-path: .gitleaks.toml

@@ -57,12 +57,20 @@ def test_workflow_trigger_policy_is_stable() -> None:
     assert "`gh workflow run validation`" in policy
 
 
-def test_tm097_validation_workflow_is_not_implemented_yet() -> None:
-    validation_workflows = [
-        path
-        for path in WORKFLOWS_DIR.glob("validation.*")
-        if path.suffix in {".yml", ".yaml"}
-    ]
+def test_tm097_validation_workflow_matches_policy_contract() -> None:
+    workflow_path = WORKFLOWS_DIR / "validation.yml"
 
-    assert validation_workflows == []
+    assert workflow_path.exists()
 
+    workflow = workflow_path.read_text(encoding="utf-8")
+
+    assert "name: validation" in workflow
+    assert "pull_request:" in workflow
+    assert "push:" in workflow
+    assert "workflow_dispatch:" in workflow
+    assert "main" in workflow
+    assert "revamp" in workflow
+    assert "pip-audit" in workflow
+    assert "npm audit --audit-level=high" in workflow
+    assert "gitleaks/gitleaks-action@v2" in workflow
+    assert "config-path: .gitleaks.toml" in workflow
