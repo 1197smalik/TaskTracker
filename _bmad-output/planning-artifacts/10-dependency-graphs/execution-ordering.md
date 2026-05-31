@@ -29,16 +29,19 @@ Execute one story per branch. Keep branches small. Do not combine unrelated stor
   1. P1C-001 real auth/session behavior
   2. P1C-002 authenticated frontend API client
   3. P1C-003 organization creation flow
-  4. P1C-004 workspace creation flow
-  5. P1C-005 project creation flow
-  6. P1C-006 membership RBAC filtering on workspace/project lists
-  7. P1C-007 work item list API wiring
-  8. P1C-008 work item detail API wiring
-  9. P1C-009 board workflow/API wiring
-  10. P1C-010 work item create/update flows
-  11. P1C-011 local demo seed command
-  12. P1C-012 Phase 1 closure acceptance E2E test
+  4. P1C-003A minimal organization ownership membership foundation
+  5. P1C-004 workspace creation flow
+  6. P1C-005 project creation flow
+  7. P1C-006 membership RBAC filtering on workspace/project lists
+  8. P1C-007 work item list API wiring
+  9. P1C-008 work item detail API wiring
+  10. P1C-009 board workflow/API wiring
+  11. P1C-010 work item create/update flows
+  12. P1C-011 local demo seed command
+  13. P1C-012 Phase 1 closure acceptance E2E test
 - P1C stories remain within Phase 1 closure only. They must not pull collaboration, integrations, SSO, advanced workflow administration, or other Phase 2+ scope into the branch.
+- P1C-003A is a required bridge story. P1C-004 must not proceed until organization creator ownership or membership exists, because workspace authorization and later RBAC filtering otherwise have no evaluable organization scope.
+- P1C-003A should include a reversible migration or deterministic backfill strategy for organizations created by P1C-003 before ownership or membership persistence existed.
 - P1C-011 should not land before the core P1C flows it demonstrates, or the seed path will freeze around placeholders instead of real behavior.
 - P1C-012 is the closure gate for Phase 1 usability and should be treated as a release-blocking story for the corrected Phase 1 plan.
 
@@ -48,6 +51,7 @@ Execute one story per branch. Keep branches small. Do not combine unrelated stor
 - API contract changes should be merged before dependent frontend stories.
 - TM-090A is a bridge story for local frontend navigation and should land before frontend stories that require selected workspace/project context.
 - Within P1C, auth/session and API-client stories must merge before frontend wiring stories, and creation-flow endpoints must merge before seed or acceptance-test work.
+- Within P1C, organization-scope membership schema work from P1C-003A must merge before workspace authorization, project authorization, or RBAC-filtered list stories.
 - Security-sensitive work must receive stricter review.
 
 ## Blocker Handling

@@ -987,9 +987,24 @@ Purpose: close the gap between Phase 1 release intent and the currently mapped i
 - Scope stays limited to single-organization creation flow needed for Phase 1 onboarding.
 **Validation Commands:** `pytest tests/api/test_organization_create.py && npm run test -- organization-create && npx playwright test --grep organization`
 
+### P1C-003A: Create minimal organization ownership membership model
+**Estimate:** 30-90 minutes
+**Dependencies:** P1C-003, TM-023, TM-024, TM-025
+**Acceptance Criteria:**
+- A minimal persisted user-to-organization ownership or membership relationship exists so the authenticated creator of a new organization becomes authorized for that organization immediately.
+- Existing organizations created before this story receive a safe migration or backfill strategy so Phase 1 authorization and visibility rules can evaluate them deterministically.
+- The backend exposes only the minimum contract or persistence behavior required for later organization-scoped authorization and list filtering; no membership management UI or advanced RBAC administration is introduced.
+- The foundation is sufficient for P1C-004 workspace creation authorization and P1C-006 membership/RBAC list filtering without requiring frontend-invented permission logic.
+- Tests cover creator ownership assignment and legacy organization backfill behavior for Phase 1-safe authorization inputs.
+**Implementation Boundaries:**
+- Include only the smallest schema, migration, and write-path updates needed to represent organization creator ownership or membership.
+- Exclude invitations, membership management UI, role editors, advanced RBAC policy administration, organization settings, organization member listing, and non-Phase-1 collaboration features.
+- Preserve backend ownership of authorization decisions; frontend work in this story is limited to any strictly necessary contract adjustments for existing organization creation flow continuity.
+**Validation Commands:** `pytest tests/api/test_organization_create.py tests/rbac && pytest tests/test_organization_membership_model.py && npm run test -- organization-create`
+
 ### P1C-004: Create workspace creation endpoint and UI shell
 **Estimate:** 30-90 minutes
-**Dependencies:** P1C-003, TM-011, TM-013, TM-024, TM-025, TM-085, TM-090A
+**Dependencies:** P1C-003A, TM-011, TM-013, TM-024, TM-025, TM-085, TM-090A
 **Acceptance Criteria:**
 - A backend endpoint exists to create a workspace within an authorized organization context.
 - A frontend shell exists for workspace creation and submits through the authenticated API client.
@@ -1011,7 +1026,7 @@ Purpose: close the gap between Phase 1 release intent and the currently mapped i
 
 ### P1C-006: Apply membership RBAC filtering to workspace project lists
 **Estimate:** 30-90 minutes
-**Dependencies:** P1C-004, P1C-005, TM-023, TM-025
+**Dependencies:** P1C-003A, P1C-004, P1C-005, TM-023, TM-025
 **Acceptance Criteria:**
 - Workspace and project list responses are filtered by effective membership/RBAC rules rather than returning unscoped data.
 - Frontend list views consume only backend-filtered results and do not implement permission logic on their own.
@@ -1066,7 +1081,7 @@ Purpose: close the gap between Phase 1 release intent and the currently mapped i
 
 ### P1C-011: Add local demo seed command
 **Estimate:** 30-90 minutes
-**Dependencies:** P1C-001, P1C-003, P1C-004, P1C-005, P1C-009, P1C-010, DOC-001
+**Dependencies:** P1C-001, P1C-003, P1C-003A, P1C-004, P1C-005, P1C-009, P1C-010, DOC-001
 **Acceptance Criteria:**
 - A documented local command seeds a minimal Phase 1 demo environment with at least one usable user, organization, workspace, project, workflow, and representative work items.
 - Seeded data is compatible with the real login and frontend flows defined in the P1C track.
@@ -1077,7 +1092,7 @@ Purpose: close the gap between Phase 1 release intent and the currently mapped i
 
 ### P1C-012: Add Phase 1 closure acceptance E2E test
 **Estimate:** 30-90 minutes
-**Dependencies:** P1C-001, P1C-002, P1C-003, P1C-004, P1C-005, P1C-006, P1C-007, P1C-008, P1C-009, P1C-010, P1C-011, TM-090, TM-100
+**Dependencies:** P1C-001, P1C-002, P1C-003, P1C-003A, P1C-004, P1C-005, P1C-006, P1C-007, P1C-008, P1C-009, P1C-010, P1C-011, TM-090, TM-100
 **Acceptance Criteria:**
 - One end-to-end acceptance path covers real login, authenticated navigation, organization/workspace/project creation or seeded access, work item list/detail usage, board interaction, and create/update behavior.
 - The test proves the Phase 1 product is usable without hidden manual setup beyond the documented seed/onboarding path.
