@@ -32,6 +32,7 @@ import {
   updateWorkspaceProjects,
 } from "./projects/navigation";
 import { AppShell } from "./routes/AppShell";
+import { WorkspaceCreatePage } from "./workspaces";
 import {
   WorkItemBoardPage,
   WorkItemDetailPage,
@@ -202,6 +203,39 @@ export function App() {
     );
   };
 
+  const handleWorkspaceCreated = async (workspace: {
+    id: string;
+    organizationId: string;
+    name: string;
+  }) => {
+    try {
+      const workspaces = await fetchWorkspaceNavigation(apiClient);
+      setProjectNavigation({
+        status: "ready",
+        selectedWorkspaceId: workspace.id,
+        selectedProjectId: null,
+        workspaces,
+        projects: [],
+      });
+    } catch {
+      setProjectNavigation((currentNavigation) => ({
+        status: "ready",
+        selectedWorkspaceId: workspace.id,
+        selectedProjectId: null,
+        workspaces:
+          currentNavigation.status === "ready"
+            ? [
+                ...currentNavigation.workspaces.filter(
+                  (currentWorkspace) => currentWorkspace.id !== workspace.id
+                ),
+                workspace,
+              ].sort((left, right) => left.name.localeCompare(right.name))
+            : [workspace],
+        projects: [],
+      }));
+    }
+  };
+
   const handleProjectCreated = async (project: {
     id: string;
     workspaceId: string;
@@ -295,6 +329,16 @@ export function App() {
             <OrganizationCreatePage
               apiClient={apiClient}
               isAuthenticated={isAuthenticatedSession(session)}
+            />
+          }
+        />
+        <Route
+          path="/organizations/:organizationId/workspaces/new"
+          element={
+            <WorkspaceCreatePage
+              apiClient={apiClient}
+              isAuthenticated={isAuthenticatedSession(session)}
+              onWorkspaceCreated={handleWorkspaceCreated}
             />
           }
         />
