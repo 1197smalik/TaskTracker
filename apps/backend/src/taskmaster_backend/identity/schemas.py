@@ -23,6 +23,7 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: Literal["bearer"]
     expires_in: int
 
@@ -33,6 +34,7 @@ class RefreshTokenRequest(BaseModel):
 
 class RefreshTokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: Literal["bearer"]
     expires_in: int
 

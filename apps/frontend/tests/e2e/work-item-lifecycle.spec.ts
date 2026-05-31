@@ -9,7 +9,7 @@ test("login shell and work-item lifecycle routes stay deterministic", async ({
     page.getByRole("heading", { name: "Sign in to TaskMaster" })
   ).toBeVisible();
   await expect(
-    page.getByText("Authentication endpoints are defined, but credential verification is not implemented yet.")
+    page.getByText("Use the backend auth endpoints to start or restore a Phase 1 session.")
   ).toBeVisible();
 
   await page.goto("/workspace");

@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from taskmaster_backend.app import create_app
 from taskmaster_backend.core.rate_limit_contract import (
@@ -19,6 +22,31 @@ from taskmaster_backend.core.rate_limit_contract import (
     RATE_LIMIT_STATUS_CODE,
     REFRESH_RATE_LIMIT_POLICY,
 )
+from taskmaster_backend.db.base import Base
+from taskmaster_backend.db.session import get_db_session
+
+
+def _build_client() -> TestClient:
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(
+        bind=engine,
+        autoflush=False,
+        expire_on_commit=False,
+        class_=Session,
+    )
+
+    app = create_app()
+
+    def override_db_session() -> Session:
+        return session_factory()
+
+    app.dependency_overrides[get_db_session] = override_db_session
+    return TestClient(app)
 
 
 def test_auth_rate_limited_endpoint_coverage_is_stable() -> None:
@@ -70,13 +98,12 @@ def test_rate_limited_response_contract_is_stable() -> None:
     }
 
 
-def test_current_contract_only_auth_stubs_are_in_rate_limit_scope() -> None:
+def test_current_contract_only_auth_endpoints_are_in_rate_limit_scope() -> None:
     assert RATE_LIMIT_APPLIES_TO_CURRENT_AUTH_STUBS is True
 
 
-def test_tm096_rate_limit_middleware_protects_current_auth_stubs() -> None:
-    app = create_app()
-    client = TestClient(app)
+def test_tm096_rate_limit_middleware_protects_current_auth_endpoints() -> None:
+    client = _build_client()
     login_responses = [
         client.post(
             "/api/v1/auth/login",
@@ -85,7 +112,7 @@ def test_tm096_rate_limit_middleware_protects_current_auth_stubs() -> None:
         for _ in range(LOGIN_RATE_LIMIT_POLICY.attempts + 1)
     ]
 
-    assert [response.status_code for response in login_responses[:5]] == [501] * 5
+    assert [response.status_code for response in login_responses[:5]] == [401] * 5
     limited_response = login_responses[5]
     assert limited_response.status_code == RATE_LIMIT_STATUS_CODE
     assert RATE_LIMIT_RETRY_AFTER_HEADER in limited_response.headers

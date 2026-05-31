@@ -1,4 +1,4 @@
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 
 import {
   AUTH_SESSION_STORAGE_POLICY,
@@ -12,6 +12,9 @@ import {
 } from "../projects";
 
 type AppShellProps = {
+  authNotice: string | null;
+  logoutPending: boolean;
+  onLogout: () => void;
   onProjectSelect: (projectId: string | null) => void;
   onWorkspaceSelect: (workspaceId: string | null) => void;
   session: AuthSession;
@@ -19,12 +22,19 @@ type AppShellProps = {
 };
 
 export function AppShell({
+  authNotice,
+  logoutPending,
+  onLogout,
   onProjectSelect,
   onWorkspaceSelect,
   projectNavigation,
   session,
 }: AppShellProps) {
+  const location = useLocation();
   const sessionLabel = describeSessionStatus(session);
+  const shouldShowAuthNotice =
+    authNotice !== null &&
+    (isAuthenticatedSession(session) || location.pathname !== "/login");
 
   return (
     <div>
@@ -40,6 +50,14 @@ export function AppShell({
             Access tokens are {AUTH_SESSION_STORAGE_POLICY.accessToken}; refresh
             tokens are {AUTH_SESSION_STORAGE_POLICY.refreshToken}.
           </p>
+          {shouldShowAuthNotice ? (
+            <p role="status">{authNotice}</p>
+          ) : null}
+          {isAuthenticatedSession(session) ? (
+            <button disabled={logoutPending} onClick={onLogout} type="button">
+              {logoutPending ? "Signing out..." : "Sign out"}
+            </button>
+          ) : null}
         </section>
       </header>
       <WorkspaceProjectNavigation

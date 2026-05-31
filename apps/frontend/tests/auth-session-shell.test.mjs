@@ -9,19 +9,27 @@ test("auth session contract keeps token storage explicit and frontend-owned auth
 
   assert.match(sessionSource, /AUTH_LOGIN_ENDPOINT = "\/api\/v1\/auth\/login"/);
   assert.match(sessionSource, /AUTH_REFRESH_ENDPOINT = "\/api\/v1\/auth\/refresh"/);
+  assert.match(sessionSource, /AUTH_LOGOUT_ENDPOINT = "\/api\/v1\/auth\/logout"/);
   assert.match(sessionSource, /accessToken: "memory_only"/);
-  assert.match(sessionSource, /refreshToken: "not_stored_by_frontend_shell"/);
+  assert.match(sessionSource, /refreshToken: "local_storage_rotating"/);
   assert.match(sessionSource, /authorization: "backend_owned"/);
-  assert.doesNotMatch(sessionSource, /localStorage|sessionStorage|document\.cookie/);
+  assert.match(sessionSource, /localStorage/);
+  assert.doesNotMatch(sessionSource, /document\.cookie/);
 });
 
-test("app shell wires a session boundary without implementing login", async () => {
+test("app shell wires a real auth session boundary and login UI", async () => {
   const appSource = await readText("src/App.tsx");
   const shellSource = await readText("src/routes/AppShell.tsx");
+  const loginPageSource = await readText("src/identity/LoginPage.tsx");
 
-  assert.match(appSource, /createAnonymousSession/);
-  assert.match(appSource, /<AppShell session=\{session\}/);
-  assert.match(appSource, /credential\s+verification is not implemented yet/i);
+  assert.match(appSource, /createCheckingSession/);
+  assert.match(appSource, /refreshSession/);
+  assert.match(appSource, /handleLogin/);
+  assert.match(appSource, /session=\{session\}/);
+  assert.match(loginPageSource, /Use the backend auth endpoints to start or restore a Phase 1 session\./);
+  assert.match(loginPageSource, /Email/);
+  assert.match(loginPageSource, /Password/);
   assert.match(shellSource, /Authentication session/);
   assert.match(shellSource, /isAuthenticatedSession/);
+  assert.match(shellSource, /Sign out/);
 });

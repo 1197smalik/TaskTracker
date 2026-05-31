@@ -1,10 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import {
   type AuthSession,
+  createCheckingSession,
   createAnonymousSession,
+  clearStoredRefreshToken,
+  getRefreshDelay,
+  login,
+  logout,
+  readStoredRefreshToken,
+  refreshSession,
 } from "./identity/session";
+import { LoginPage } from "./identity/LoginPage";
 import {
   ProjectShellPage,
   WorkspaceHomePage,
@@ -27,11 +35,49 @@ import {
 } from "./work-items";
 
 export function App() {
-  const [session] = useState<AuthSession>(() => createAnonymousSession());
+  const restoreAttemptedRef = useRef(false);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [session, setSession] = useState<AuthSession>(() => createCheckingSession());
   const [projectNavigation, setProjectNavigation] =
     useState<WorkspaceProjectNavigationState>(() =>
     createEmptyWorkspaceProjectNavigation()
   );
+
+  useEffect(() => {
+    if (restoreAttemptedRef.current) {
+      return;
+    }
+    restoreAttemptedRef.current = true;
+
+    let cancelled = false;
+    const storedRefreshToken = readStoredRefreshToken();
+
+    if (storedRefreshToken === null) {
+      setSession(createAnonymousSession());
+      return;
+    }
+
+    void refreshSession(storedRefreshToken)
+      .then((nextSession) => {
+        if (!cancelled) {
+          setAuthNotice(null);
+          setSession(nextSession);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          clearStoredRefreshToken();
+          setAuthNotice(resolveAuthNotice(error));
+          setSession(createAnonymousSession());
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +134,36 @@ export function App() {
     };
   }, [projectNavigation.status, projectNavigation.selectedWorkspaceId]);
 
+  useEffect(() => {
+    const refreshDelay = getRefreshDelay(session);
+    if (refreshDelay === null) {
+      return;
+    }
+
+    let cancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      void refreshSession()
+        .then((nextSession) => {
+          if (!cancelled) {
+            setAuthNotice(null);
+            setSession(nextSession);
+          }
+        })
+        .catch((error: unknown) => {
+          if (!cancelled) {
+            clearStoredRefreshToken();
+            setAuthNotice(resolveAuthNotice(error));
+            setSession(createAnonymousSession());
+          }
+        });
+    }, refreshDelay);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [session]);
+
   const handleWorkspaceSelect = (workspaceId: string | null) => {
     setProjectNavigation((currentNavigation) =>
       updateSelectedWorkspace(currentNavigation, workspaceId)
@@ -100,11 +176,37 @@ export function App() {
     );
   };
 
+  const handleLogin = async (email: string, password: string) => {
+    setIsLoggingIn(true);
+    try {
+      const nextSession = await login(email, password);
+      setAuthNotice(null);
+      setSession(nextSession);
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsLoggingOut(true);
+    void logout()
+      .catch((error: unknown) => {
+        setAuthNotice(resolveAuthNotice(error));
+      })
+      .finally(() => {
+        setSession(createAnonymousSession());
+        setIsLoggingOut(false);
+      });
+  };
+
   return (
     <Routes>
       <Route
         element={
           <AppShell
+            authNotice={authNotice}
+            logoutPending={isLoggingOut}
+            onLogout={handleLogout}
             onProjectSelect={handleProjectSelect}
             onWorkspaceSelect={handleWorkspaceSelect}
             projectNavigation={projectNavigation}
@@ -116,14 +218,12 @@ export function App() {
         <Route
           path="/login"
           element={
-            <section aria-labelledby="login-heading">
-              <p>Identity</p>
-              <h1 id="login-heading">Sign in to TaskMaster</h1>
-              <p>
-                Authentication endpoints are defined, but credential
-                verification is not implemented yet.
-              </p>
-            </section>
+            <LoginPage
+              authNotice={authNotice}
+              isSubmitting={isLoggingIn}
+              onLogin={handleLogin}
+              session={session}
+            />
           }
         />
         <Route
@@ -161,4 +261,23 @@ export function App() {
       </Route>
     </Routes>
   );
+}
+
+function resolveAuthNotice(error: unknown): string {
+  if (!(error instanceof Error) || !("code" in error)) {
+    return "Authentication failed. Try again.";
+  }
+
+  switch (error.code) {
+    case "expired_session":
+      return "Your session expired. Sign in again.";
+    case "invalid_session":
+      return "Your session is invalid. Sign in again.";
+    case "revoked_session":
+      return "Your session was revoked. Sign in again.";
+    case "network_error":
+      return "TaskMaster could not reach the authentication service.";
+    default:
+      return "Authentication failed. Try again.";
+  }
 }

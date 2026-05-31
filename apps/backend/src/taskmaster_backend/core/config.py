@@ -9,6 +9,7 @@ DEFAULT_JWT_ALGORITHM = "HS256"
 DEFAULT_JWT_ISSUER = "taskmaster-backend"
 DEFAULT_JWT_AUDIENCE = "taskmaster-api"
 DEFAULT_JWT_ACCESS_TOKEN_TTL_SECONDS = 900
+DEFAULT_REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7
 
 
 @dataclass(frozen=True)
@@ -19,6 +20,7 @@ class Settings:
     jwt_issuer: str
     jwt_audience: str
     jwt_access_token_ttl_seconds: int
+    refresh_token_ttl_seconds: int
 
 
 @lru_cache(maxsize=1)
@@ -33,6 +35,12 @@ def get_settings() -> Settings:
             os.getenv(
                 "TASKMASTER_JWT_ACCESS_TOKEN_TTL_SECONDS",
                 str(DEFAULT_JWT_ACCESS_TOKEN_TTL_SECONDS),
+            ),
+        ),
+        refresh_token_ttl_seconds=int(
+            os.getenv(
+                "TASKMASTER_REFRESH_TOKEN_TTL_SECONDS",
+                str(DEFAULT_REFRESH_TOKEN_TTL_SECONDS),
             ),
         ),
     )
