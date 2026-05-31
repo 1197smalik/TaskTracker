@@ -6,9 +6,6 @@ import {
 export const WORKSPACE_PROJECT_NAVIGATION_UNAVAILABLE_REASON =
   "workspace_project_api_not_available";
 
-export const WORKSPACE_PROJECT_NAVIGATION_LOCAL_ONLY_NOTICE =
-  "local_manual_navigation_only";
-
 export type WorkspaceNavigationItem = {
   id: string;
   organizationId: string;
@@ -106,6 +103,18 @@ export function updateSelectedProject(
     selectedProjectId: projectId,
     workspaces: navigation.workspaces,
     projects: navigation.projects,
+  };
+}
+
+export function clearSelectedWorkspace(
+  navigation: WorkspaceProjectNavigationState
+): WorkspaceProjectNavigationState {
+  return {
+    status: "ready",
+    selectedWorkspaceId: null,
+    selectedProjectId: null,
+    workspaces: navigation.workspaces,
+    projects: [],
   };
 }
 

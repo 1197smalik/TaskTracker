@@ -7,6 +7,7 @@ from sqlalchemy.pool import StaticPool
 
 from taskmaster_backend.app import create_app
 from taskmaster_backend.db.base import Base
+from taskmaster_backend.identity.dependencies import AuthenticatedPrincipal
 from taskmaster_backend.identity.models import Organization, Workspace
 from taskmaster_backend.projects.models import Project
 from taskmaster_backend.projects.routes import (
@@ -31,7 +32,7 @@ def _create_test_session_factory() -> sessionmaker[Session]:
 
 def _seed_navigation_records(session_factory: sessionmaker[Session]) -> tuple[str, str]:
     with session_factory() as session:
-        organization = Organization(id="org-1", name="Acme")
+        organization = Organization(id="org-1", name="Acme", owner_user_id="user-1")
         workspace_alpha = Workspace(
             id="workspace-1",
             organization_id="org-1",
@@ -111,7 +112,7 @@ def test_list_workspaces_route_returns_sorted_navigation_records() -> None:
     _seed_navigation_records(session_factory)
 
     with session_factory() as session:
-        response = list_workspaces_route(session=session)
+        response = list_workspaces_route(session=session, principal=_principal())
 
     assert isinstance(response, WorkspaceNavigationListResponse)
     assert [(item.id, item.name) for item in response.items] == [
@@ -127,6 +128,7 @@ def test_list_workspace_projects_route_is_workspace_scoped() -> None:
     with session_factory() as session:
         response = list_workspace_projects_route(
             workspace_alpha_id,
+            principal=_principal(),
             session=session,
         )
 
@@ -146,8 +148,18 @@ def test_list_workspace_projects_route_returns_empty_list_for_workspace_without_
         session.commit()
         response = list_workspace_projects_route(
             workspace_beta_id,
+            principal=_principal(),
             session=session,
         )
 
     assert isinstance(response, ProjectNavigationListResponse)
     assert response.items == []
+
+
+def _principal() -> AuthenticatedPrincipal:
+    return AuthenticatedPrincipal(
+        subject="user-1",
+        issuer="test-issuer",
+        audience="test-audience",
+        expires_at=9_999_999_999,
+    )

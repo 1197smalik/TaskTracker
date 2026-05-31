@@ -26,14 +26,21 @@ test("workspace/project shell keeps selection local and explicit", async () => {
 
   assert.match(componentSource, /aria-label="Workspace selector"/);
   assert.match(componentSource, /aria-label="Project selector"/);
-  assert.match(componentSource, /No membership lookup or authorization inference is applied/);
+  assert.match(
+    componentSource,
+    /Workspace and project lists reflect backend-filtered visibility for the/
+  );
+  assert.match(componentSource, /No workspaces are available for your current access\./);
   assert.match(componentSource, /No projects are available for the selected workspace/);
   assert.match(appSource, /fetchWorkspaceNavigation/);
   assert.match(appSource, /fetchProjectNavigation/);
+  assert.match(appSource, /project_navigation_request_failed:403/);
+  assert.match(appSource, /clearSelectedWorkspace/);
   assert.match(appSource, /updateSelectedWorkspace/);
   assert.match(appSource, /updateSelectedProject/);
   assert.match(appSource, /createEmptyWorkspaceProjectNavigation/);
   assert.match(appSource, /\/workspace\/:workspaceId\/projects\/:projectId/);
   assert.match(navigationSource, /\/api\/v1\/projects\/workspaces/);
+  assert.doesNotMatch(navigationSource, /local_manual_navigation_only/);
   assert.doesNotMatch(componentSource, /admin|role|permission|capability/i);
 });

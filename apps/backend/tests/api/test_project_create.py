@@ -171,10 +171,7 @@ def test_create_project_rejects_unauthorized_workspace_access(
     assert response.status_code == 403
     body = response.json()
     assert body["error_code"] == "workspace_access_denied"
-    assert (
-        body["message"]
-        == "You are not authorized to create projects in this workspace."
-    )
+    assert body["message"] == "You are not authorized to access this workspace."
 
 
 def test_create_project_rejects_invalid_project_data(

@@ -49,18 +49,23 @@ PROJECT_KEY_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*$")
 @router.get(
     "/workspaces",
     response_model=WorkspaceNavigationListResponse,
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"model": ProjectApiErrorResponse},
+    },
     summary="List workspaces for local navigation",
     description=(
-        "List minimal workspace navigation records for local manual frontend "
-        "navigation. Membership filtering and authorization-backed scoping are "
-        "intentionally not inferred by this contract."
+        "List minimal workspace navigation records filtered by the backend-owned "
+        "Phase 1 organization visibility rules for the authenticated principal."
     ),
 )
 def list_workspaces_route(
+    principal: AuthenticatedPrincipal = Depends(get_current_principal),
     session: Session = Depends(get_db_session),
 ) -> WorkspaceNavigationListResponse:
     workspaces = (
         session.query(Workspace)
+        .join(Organization, Organization.id == Workspace.organization_id)
+        .filter(Organization.owner_user_id == principal.subject)
         .order_by(Workspace.name.asc(), Workspace.id.asc())
         .all()
     )
@@ -79,20 +84,37 @@ def list_workspaces_route(
 @router.get(
     "/workspaces/{workspace_id}/projects",
     response_model=ProjectNavigationListResponse,
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"model": ProjectApiErrorResponse},
+        status.HTTP_403_FORBIDDEN: {"model": ProjectApiErrorResponse},
+        status.HTTP_404_NOT_FOUND: {"model": ProjectApiErrorResponse},
+    },
     summary="List projects for a workspace for local navigation",
     description=(
-        "List minimal project navigation records for a selected workspace. "
-        "Membership filtering and authorization-backed scoping are intentionally "
-        "not inferred by this contract."
+        "List minimal project navigation records for a selected workspace that is "
+        "visible to the authenticated principal under the backend-owned Phase 1 "
+        "organization visibility rules."
     ),
 )
 def list_workspace_projects_route(
     workspace_id: str,
+    principal: AuthenticatedPrincipal = Depends(get_current_principal),
     session: Session = Depends(get_db_session),
-) -> ProjectNavigationListResponse:
+) -> ProjectNavigationListResponse | JSONResponse:
+    workspace, organization, error_response = _resolve_owned_workspace(
+        session,
+        workspace_id,
+        principal.subject,
+    )
+    if error_response is not None:
+        return error_response
+
+    assert workspace is not None
+    assert organization is not None
+
     projects = (
         session.query(Project)
-        .filter(Project.workspace_id == workspace_id)
+        .filter(Project.workspace_id == workspace.id)
         .order_by(Project.key.asc(), Project.id.asc())
         .all()
     )
@@ -139,30 +161,18 @@ def create_project_route(
     if validation_error is not None:
         return validation_error
 
-    workspace = session.get(Workspace, workspace_id)
-    if workspace is None:
-        return _project_error_response(
-            status.HTTP_404_NOT_FOUND,
-            error_code="workspace_not_found",
-            message="Workspace was not found.",
-        )
-
-    organization = session.get(Organization, workspace.organization_id)
-    if organization is None:
-        return _project_error_response(
-            status.HTTP_404_NOT_FOUND,
-            error_code="workspace_not_found",
-            message="Workspace was not found.",
-        )
-    if organization.owner_user_id != principal.subject:
-        return _project_error_response(
-            status.HTTP_403_FORBIDDEN,
-            error_code="workspace_access_denied",
-            message="You are not authorized to create projects in this workspace.",
-        )
+    workspace, organization, error_response = _resolve_owned_workspace(
+        session,
+        workspace_id,
+        principal.subject,
+    )
+    if error_response is not None:
+        return error_response
 
     assert normalized_key is not None
     assert normalized_name is not None
+    assert workspace is not None
+    assert organization is not None
 
     duplicate_project_key = (
         session.query(Project.id)
@@ -277,6 +287,48 @@ def _workflow_definition_not_found_error() -> ProjectApiErrorResponse:
         message="Assigned workflow definition was not found or is inaccessible.",
         correlation_id=str(uuid4()),
     )
+
+
+def _resolve_owned_workspace(
+    session: Session,
+    workspace_id: str,
+    principal_subject: str,
+) -> tuple[Workspace | None, Organization | None, JSONResponse | None]:
+    workspace = session.get(Workspace, workspace_id)
+    if workspace is None:
+        return (
+            None,
+            None,
+            _project_error_response(
+                status.HTTP_404_NOT_FOUND,
+                error_code="workspace_not_found",
+                message="Workspace was not found.",
+            ),
+        )
+
+    organization = session.get(Organization, workspace.organization_id)
+    if organization is None:
+        return (
+            None,
+            None,
+            _project_error_response(
+                status.HTTP_404_NOT_FOUND,
+                error_code="workspace_not_found",
+                message="Workspace was not found.",
+            ),
+        )
+    if organization.owner_user_id != principal_subject:
+        return (
+            None,
+            None,
+            _project_error_response(
+                status.HTTP_403_FORBIDDEN,
+                error_code="workspace_access_denied",
+                message="You are not authorized to access this workspace.",
+            ),
+        )
+
+    return workspace, organization, None
 
 
 def _validate_project_request(

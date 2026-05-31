@@ -24,6 +24,7 @@ import {
   type WorkspaceProjectNavigationState,
 } from "./projects";
 import {
+  clearSelectedWorkspace,
   createReadyWorkspaceProjectNavigation,
   fetchProjectNavigation,
   fetchWorkspaceNavigation,
@@ -148,11 +149,19 @@ export function App() {
           updateWorkspaceProjects(currentNavigation, projects)
         );
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!cancelled) {
-          setProjectNavigation((currentNavigation) =>
-            updateWorkspaceProjects(currentNavigation, [])
-          );
+          setProjectNavigation((currentNavigation) => {
+            if (
+              error instanceof Error &&
+              (error.message === "project_navigation_request_failed:403" ||
+                error.message === "project_navigation_request_failed:404")
+            ) {
+              return clearSelectedWorkspace(currentNavigation);
+            }
+
+            return updateWorkspaceProjects(currentNavigation, []);
+          });
         }
       });
 

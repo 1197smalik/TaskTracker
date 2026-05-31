@@ -2,7 +2,6 @@ import { ChangeEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import {
-  WORKSPACE_PROJECT_NAVIGATION_LOCAL_ONLY_NOTICE,
   type WorkspaceProjectNavigationState,
   getSelectedProject,
   getSelectedWorkspace,
@@ -45,15 +44,15 @@ export function WorkspaceProjectNavigation({
       <p>Project context: {selectedProject?.name ?? "No project selected"}</p>
       {navigation.status === "unavailable" ? (
         <p>
-          Workspace and project lists are waiting for backend list contracts.
-          No frontend authorization or membership lookup is inferred.
+          Workspace and project navigation is unavailable right now. Backend-owned
+          visibility rules decide which resources appear here.
         </p>
       ) : null}
       {navigation.status === "ready" ? (
         <>
           <p>
-            Lists are {WORKSPACE_PROJECT_NAVIGATION_LOCAL_ONLY_NOTICE.replaceAll("_", " ")}.
-            No membership lookup or authorization inference is applied.
+            Workspace and project lists reflect backend-filtered visibility for the
+            authenticated account.
           </p>
           <label>
             Workspace selector
@@ -71,7 +70,7 @@ export function WorkspaceProjectNavigation({
             </select>
           </label>
           {navigation.workspaces.length === 0 ? (
-            <p>No workspaces are available for local manual navigation.</p>
+            <p>No workspaces are available for your current access.</p>
           ) : null}
           <label>
             Project selector
