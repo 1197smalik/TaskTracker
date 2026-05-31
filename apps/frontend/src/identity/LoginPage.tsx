@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
 import {
@@ -38,7 +38,7 @@ export function LoginPage({
     return <Navigate replace to="/workspace" />;
   }
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage(null);
 

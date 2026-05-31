@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import type { AuthenticatedApiClient } from "../identity/apiClient";
 import {
   buildProjectWorkItemTransitionUrl,
   transitionProjectWorkItem,
@@ -25,7 +26,11 @@ const unloadedWorkItemDetailState: WorkItemDetailPageState = {
   response: null,
 };
 
-export function WorkItemDetailPage() {
+type WorkItemDetailPageProps = {
+  apiClient: AuthenticatedApiClient;
+};
+
+export function WorkItemDetailPage({ apiClient }: WorkItemDetailPageProps) {
   const { workspaceId, projectId, workItemId } = useParams();
   const detailUrl =
     projectId === undefined || workItemId === undefined
@@ -48,6 +53,7 @@ export function WorkItemDetailPage() {
       {detailUrl !== null ? <p>Detail contract: {detailUrl}</p> : null}
       {transitionUrl !== null ? <p>Transition contract: {transitionUrl}</p> : null}
       <WorkItemDetailView
+        apiClient={apiClient}
         listPath={listPath}
         projectId={projectId}
         state={unloadedWorkItemDetailState}
@@ -60,6 +66,7 @@ export function WorkItemDetailPage() {
 }
 
 type WorkItemDetailViewProps = {
+  apiClient: AuthenticatedApiClient;
   state: WorkItemDetailPageState;
   workspaceId: string | undefined;
   listPath: string | null;
@@ -69,6 +76,7 @@ type WorkItemDetailViewProps = {
 };
 
 export function WorkItemDetailView({
+  apiClient,
   listPath,
   projectId,
   state,
@@ -85,6 +93,7 @@ export function WorkItemDetailView({
           capabilities.
         </p>
         <WorkItemTransitionControl
+          apiClient={apiClient}
           currentStateId={null}
           expectedVersion={null}
           projectId={projectId}
@@ -126,6 +135,7 @@ export function WorkItemDetailView({
         <dd>{state.response.updated_at}</dd>
       </dl>
       <WorkItemTransitionControl
+        apiClient={apiClient}
         currentStateId={state.response.current_state_id}
         expectedVersion={state.response.version}
         projectId={state.response.project_id}
@@ -142,6 +152,7 @@ export function WorkItemDetailView({
 }
 
 type WorkItemTransitionControlProps = {
+  apiClient: AuthenticatedApiClient;
   transitionUrl: string | null;
   expectedVersion: number | null;
   currentStateId: string | null;
@@ -172,6 +183,7 @@ type WorkItemTransitionControlState =
     };
 
 function WorkItemTransitionControl({
+  apiClient,
   currentStateId,
   expectedVersion,
   projectId,
@@ -211,7 +223,7 @@ function WorkItemTransitionControl({
     });
 
     try {
-      const result = await transitionProjectWorkItem(projectId, workItemId, {
+      const result = await transitionProjectWorkItem(apiClient, projectId, workItemId, {
         expected_version: expectedVersion,
         source_state_id: currentStateId,
         target_state_id: targetStateId.trim(),

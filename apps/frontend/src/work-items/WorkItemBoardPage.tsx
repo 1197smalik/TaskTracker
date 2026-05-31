@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import type { AuthenticatedApiClient } from "../identity/apiClient";
 import {
   buildProjectBoardPath,
   buildProjectWorkflowStatesUrl,
@@ -32,7 +33,11 @@ const unloadedWorkItemBoardState: WorkItemBoardPageState = {
   response: null,
 };
 
-export function WorkItemBoardPage() {
+type WorkItemBoardPageProps = {
+  apiClient: AuthenticatedApiClient;
+};
+
+export function WorkItemBoardPage({ apiClient }: WorkItemBoardPageProps) {
   const { workspaceId, projectId } = useParams();
   const workflowStatesUrl =
     projectId === undefined ? null : buildProjectWorkflowStatesUrl(projectId);
@@ -58,6 +63,7 @@ export function WorkItemBoardPage() {
       ) : null}
       {workItemsUrl !== null ? <p>Work items contract: {workItemsUrl}</p> : null}
       <WorkItemBoardView
+        apiClient={apiClient}
         projectId={projectId}
         state={unloadedWorkItemBoardState}
         workspaceId={workspaceId}
@@ -67,12 +73,14 @@ export function WorkItemBoardPage() {
 }
 
 type WorkItemBoardViewProps = {
+  apiClient: AuthenticatedApiClient;
   state: WorkItemBoardPageState;
   workspaceId: string | undefined;
   projectId: string | undefined;
 };
 
 export function WorkItemBoardView({
+  apiClient,
   projectId,
   state,
   workspaceId,
@@ -91,6 +99,7 @@ export function WorkItemBoardView({
 
   return (
     <ReadyWorkItemBoard
+      apiClient={apiClient}
       projectId={projectId}
       response={state.response}
       workspaceId={workspaceId}
@@ -99,6 +108,7 @@ export function WorkItemBoardView({
 }
 
 type ReadyWorkItemBoardProps = {
+  apiClient: AuthenticatedApiClient;
   response: {
     workflowStates: ProjectWorkflowStateCatalogResponse;
     workItems: WorkItemListResponse;
@@ -108,6 +118,7 @@ type ReadyWorkItemBoardProps = {
 };
 
 function ReadyWorkItemBoard({
+  apiClient,
   projectId,
   response,
   workspaceId,
@@ -154,6 +165,7 @@ function ReadyWorkItemBoard({
                   <p>Version {workItem.version}</p>
                   <p>State {workItem.current_state_id}</p>
                   <BoardTransitionControl
+                    apiClient={apiClient}
                     onTransitionConfirmed={replaceConfirmedWorkItem}
                     projectId={projectId}
                     states={response.workflowStates.states}
@@ -183,6 +195,7 @@ function ReadyWorkItemBoard({
 }
 
 type BoardTransitionControlProps = {
+  apiClient: AuthenticatedApiClient;
   projectId: string;
   workItem: WorkItemResponse;
   states: ProjectWorkflowStateResponse[];
@@ -208,6 +221,7 @@ type BoardTransitionState =
     };
 
 function BoardTransitionControl({
+  apiClient,
   onTransitionConfirmed,
   projectId,
   states,
@@ -236,7 +250,7 @@ function BoardTransitionControl({
     });
 
     try {
-      const result = await transitionProjectWorkItem(projectId, workItem.id, {
+      const result = await transitionProjectWorkItem(apiClient, projectId, workItem.id, {
         expected_version: workItem.version,
         source_state_id: workItem.current_state_id,
         target_state_id: targetStateId,

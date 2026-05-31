@@ -1,3 +1,8 @@
+import {
+  type AuthenticatedApiClient,
+  ApiClientResponseError,
+} from "../identity/apiClient";
+
 export const WORKSPACE_PROJECT_NAVIGATION_UNAVAILABLE_REASON =
   "workspace_project_api_not_available";
 
@@ -104,28 +109,37 @@ export function updateSelectedProject(
   };
 }
 
-export async function fetchWorkspaceNavigation(): Promise<WorkspaceNavigationItem[]> {
-  const response = await fetch("/api/v1/projects/workspaces");
-
-  if (!response.ok) {
-    throw new Error("workspace_navigation_request_failed");
+export async function fetchWorkspaceNavigation(
+  apiClient: AuthenticatedApiClient
+): Promise<WorkspaceNavigationItem[]> {
+  try {
+    const data = await apiClient.getJson<WorkspaceNavigationListResponse>(
+      "/api/v1/projects/workspaces"
+    );
+    return data.items;
+  } catch (error) {
+    if (error instanceof ApiClientResponseError) {
+      throw new Error(`workspace_navigation_request_failed:${error.statusCode}`);
+    }
+    throw error;
   }
-
-  const data = (await response.json()) as WorkspaceNavigationListResponse;
-  return data.items;
 }
 
 export async function fetchProjectNavigation(
+  apiClient: AuthenticatedApiClient,
   workspaceId: string
 ): Promise<ProjectNavigationItem[]> {
-  const response = await fetch(`/api/v1/projects/workspaces/${workspaceId}/projects`);
-
-  if (!response.ok) {
-    throw new Error("project_navigation_request_failed");
+  try {
+    const data = await apiClient.getJson<ProjectNavigationListResponse>(
+      `/api/v1/projects/workspaces/${workspaceId}/projects`
+    );
+    return data.items;
+  } catch (error) {
+    if (error instanceof ApiClientResponseError) {
+      throw new Error(`project_navigation_request_failed:${error.statusCode}`);
+    }
+    throw error;
   }
-
-  const data = (await response.json()) as ProjectNavigationListResponse;
-  return data.items;
 }
 
 export function getSelectedWorkspace(

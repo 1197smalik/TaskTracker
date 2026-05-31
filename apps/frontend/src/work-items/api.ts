@@ -1,3 +1,5 @@
+import type { AuthenticatedApiClient } from "../identity/apiClient";
+
 export type WorkItemListParams = {
   limit: number;
   offset: number;
@@ -122,17 +124,21 @@ export function buildProjectWorkItemTransitionUrl(
 }
 
 export async function transitionProjectWorkItem(
+  apiClient: AuthenticatedApiClient,
   projectId: string,
   workItemId: string,
   request: WorkflowTransitionRequest
 ): Promise<WorkItemTransitionResult> {
-  const response = await fetch(buildProjectWorkItemTransitionUrl(projectId, workItemId), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(request),
-  });
+  const response = await apiClient.request(
+    buildProjectWorkItemTransitionUrl(projectId, workItemId),
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    }
+  );
 
   if (response.ok) {
     const payload = (await response.json()) as WorkflowTransitionResponse;

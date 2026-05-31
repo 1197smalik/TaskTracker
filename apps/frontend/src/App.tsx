@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
+import { createAuthenticatedApiClient } from "./identity/apiClient";
 import {
   type AuthSession,
   createCheckingSession,
@@ -36,6 +37,10 @@ import {
 
 export function App() {
   const restoreAttemptedRef = useRef(false);
+  const sessionRef = useRef<AuthSession>(createCheckingSession());
+  const apiClientRef = useRef<ReturnType<typeof createAuthenticatedApiClient> | null>(
+    null
+  );
   const [authNotice, setAuthNotice] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -44,6 +49,24 @@ export function App() {
     useState<WorkspaceProjectNavigationState>(() =>
     createEmptyWorkspaceProjectNavigation()
   );
+  sessionRef.current = session;
+
+  if (apiClientRef.current === null) {
+    apiClientRef.current = createAuthenticatedApiClient({
+      getSession: () => sessionRef.current,
+      onSessionInvalidated: (error) => {
+        clearStoredRefreshToken();
+        setAuthNotice(resolveAuthNotice(error));
+        setSession(createAnonymousSession());
+      },
+      onSessionRenewed: (nextSession) => {
+        setAuthNotice(null);
+        setSession(nextSession);
+      },
+    });
+  }
+
+  const apiClient = apiClientRef.current;
 
   useEffect(() => {
     if (restoreAttemptedRef.current) {
@@ -82,7 +105,7 @@ export function App() {
   useEffect(() => {
     let cancelled = false;
 
-    void fetchWorkspaceNavigation()
+    void fetchWorkspaceNavigation(apiClient)
       .then((workspaces) => {
         if (cancelled) {
           return;
@@ -99,7 +122,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [apiClient]);
 
   useEffect(() => {
     if (
@@ -111,7 +134,7 @@ export function App() {
 
     let cancelled = false;
 
-    void fetchProjectNavigation(projectNavigation.selectedWorkspaceId)
+    void fetchProjectNavigation(apiClient, projectNavigation.selectedWorkspaceId)
       .then((projects) => {
         if (cancelled) {
           return;
@@ -132,7 +155,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [projectNavigation.status, projectNavigation.selectedWorkspaceId]);
+  }, [apiClient, projectNavigation.status, projectNavigation.selectedWorkspaceId]);
 
   useEffect(() => {
     const refreshDelay = getRefreshDelay(session);
@@ -252,11 +275,11 @@ export function App() {
         />
         <Route
           path="/workspace/:workspaceId/projects/:projectId/board"
-          element={<WorkItemBoardPage />}
+          element={<WorkItemBoardPage apiClient={apiClient} />}
         />
         <Route
           path="/workspace/:workspaceId/projects/:projectId/work-items/:workItemId"
-          element={<WorkItemDetailPage />}
+          element={<WorkItemDetailPage apiClient={apiClient} />}
         />
       </Route>
     </Routes>
