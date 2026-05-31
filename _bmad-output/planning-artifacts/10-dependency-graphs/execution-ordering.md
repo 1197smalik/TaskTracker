@@ -19,6 +19,9 @@ Execute one story per branch. Keep branches small. Do not combine unrelated stor
 9. Frontend lifecycle flow.
 10. Production readiness gates.
 
+## Post-Critical-Path Documentation
+- DOC-001 should execute after TM-100 so the repository README and developer onboarding guide describe the implementation as it actually exists, not the planned target state.
+
 ## Parallelization Rules
 - Parallel work is allowed only when stories do not touch the same schema/module boundaries.
 - Schema migrations should be serialized unless carefully reviewed.

@@ -938,3 +938,14 @@ Each story is intentionally small enough for autonomous execution, review, and r
 - Tests or validation evidence are included for the changed behavior.
 - Documentation or contract updates are included where required.
 **Validation Commands:** `pytest tests/smoke && npx playwright test smoke`
+### DOC-001: Create project README and developer onboarding guide
+**Estimate:** 30–90 minutes  
+**Dependencies:** TM-100  
+**Acceptance Criteria:**
+- `README.md` is suitable for onboarding a new engineer to the TaskMaster repository.
+- Implemented features completed through TM-100 are clearly distinguished from planned or future features.
+- The document includes project overview, feature overview, architecture overview, technology stack, repository structure, local development setup, backend run instructions, frontend run instructions, Docker usage, testing strategy, CI/CD workflows, observability, security controls, known limitations, and future roadmap guidance.
+- Setup and run instructions are executable against the repository state completed through TM-100.
+- The architecture summary reflects actual implementation rather than planned-only design.
+- No major implemented subsystem through TM-100 remains undocumented in `README.md`.
+**Validation Commands:** `markdown lint if available && link/reference validation if available && git diff --check README.md`
