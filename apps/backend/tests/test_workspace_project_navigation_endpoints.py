@@ -73,19 +73,19 @@ def _seed_navigation_records(session_factory: sessionmaker[Session]) -> tuple[st
 
 def test_workspace_navigation_routes_are_registered() -> None:
     app = create_app()
-    paths = {
-        route.path: route.methods
-        for route in app.routes
-        if isinstance(route, APIRoute)
-        and route.path
-        in {
+    paths: dict[str, set[str]] = {}
+    for route in app.routes:
+        if not isinstance(route, APIRoute):
+            continue
+        if route.path not in {
             "/api/v1/projects/workspaces",
             "/api/v1/projects/workspaces/{workspace_id}/projects",
-        }
-    }
+        }:
+            continue
+        paths.setdefault(route.path, set()).update(route.methods)
 
     assert paths["/api/v1/projects/workspaces"] == {"GET"}
-    assert paths["/api/v1/projects/workspaces/{workspace_id}/projects"] == {"GET"}
+    assert paths["/api/v1/projects/workspaces/{workspace_id}/projects"] == {"GET", "POST"}
 
 
 def test_workspace_navigation_openapi_contracts_are_exposed() -> None:

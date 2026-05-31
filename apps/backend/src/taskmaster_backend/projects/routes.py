@@ -2,25 +2,31 @@
 
 from __future__ import annotations
 
+import re
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from taskmaster_backend.db.session import get_db_session
-from taskmaster_backend.identity.models import Workspace
+from taskmaster_backend.identity.dependencies import AuthenticatedPrincipal, get_current_principal
+from taskmaster_backend.identity.models import Organization, Workspace
 from taskmaster_backend.projects.models import Project
 from taskmaster_backend.projects.schemas import (
     ProjectApiErrorResponse,
     ProjectComponentCreateRequest,
     ProjectComponentListResponse,
     ProjectComponentResponse,
+    ProjectCreateRequest,
+    ProjectCreateResponse,
     ProjectLabelCreateRequest,
     ProjectLabelListResponse,
     ProjectLabelResponse,
     ProjectNavigationListResponse,
     ProjectNavigationResponse,
+    ProjectResponse,
     ProjectVersionCreateRequest,
     ProjectVersionListResponse,
     ProjectVersionResponse,
@@ -37,6 +43,7 @@ from taskmaster_backend.workflows.repository import (
 )
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+PROJECT_KEY_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*$")
 
 
 @router.get(
@@ -99,6 +106,110 @@ def list_workspace_projects_route(
             )
             for project in projects
         ]
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/projects",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ProjectCreateResponse,
+    responses={
+        status.HTTP_400_BAD_REQUEST: {"model": ProjectApiErrorResponse},
+        status.HTTP_401_UNAUTHORIZED: {"model": ProjectApiErrorResponse},
+        status.HTTP_403_FORBIDDEN: {"model": ProjectApiErrorResponse},
+        status.HTTP_404_NOT_FOUND: {"model": ProjectApiErrorResponse},
+        status.HTTP_409_CONFLICT: {"model": ProjectApiErrorResponse},
+    },
+    summary="Create project",
+    description=(
+        "Create a Phase 1 project within an authorized workspace context. "
+        "Project administration, boards, and work item wiring are handled by later stories."
+    ),
+)
+def create_project_route(
+    workspace_id: str,
+    request: ProjectCreateRequest,
+    session: Session = Depends(get_db_session),
+    principal: AuthenticatedPrincipal = Depends(get_current_principal),
+) -> ProjectCreateResponse | JSONResponse:
+    normalized_key, normalized_name, validation_error = _validate_project_request(
+        request.key,
+        request.name,
+    )
+    if validation_error is not None:
+        return validation_error
+
+    workspace = session.get(Workspace, workspace_id)
+    if workspace is None:
+        return _project_error_response(
+            status.HTTP_404_NOT_FOUND,
+            error_code="workspace_not_found",
+            message="Workspace was not found.",
+        )
+
+    organization = session.get(Organization, workspace.organization_id)
+    if organization is None:
+        return _project_error_response(
+            status.HTTP_404_NOT_FOUND,
+            error_code="workspace_not_found",
+            message="Workspace was not found.",
+        )
+    if organization.owner_user_id != principal.subject:
+        return _project_error_response(
+            status.HTTP_403_FORBIDDEN,
+            error_code="workspace_access_denied",
+            message="You are not authorized to create projects in this workspace.",
+        )
+
+    assert normalized_key is not None
+    assert normalized_name is not None
+
+    duplicate_project_key = (
+        session.query(Project.id)
+        .filter(Project.workspace_id == workspace.id)
+        .filter(func.lower(Project.key) == normalized_key.lower())
+        .first()
+    )
+    if duplicate_project_key is not None:
+        return _project_error_response(
+            status.HTTP_409_CONFLICT,
+            error_code="duplicate_project_key",
+            message="Project key already exists in this workspace.",
+            field_errors={"key": ["Use a unique project key."]},
+        )
+
+    duplicate_project_name = (
+        session.query(Project.id)
+        .filter(Project.workspace_id == workspace.id)
+        .filter(func.lower(Project.name) == normalized_name.lower())
+        .first()
+    )
+    if duplicate_project_name is not None:
+        return _project_error_response(
+            status.HTTP_409_CONFLICT,
+            error_code="duplicate_project_name",
+            message="Project name already exists in this workspace.",
+            field_errors={"name": ["Use a unique project name."]},
+        )
+
+    project = Project(
+        workspace_id=workspace.id,
+        key=normalized_key,
+        name=normalized_name,
+    )
+    session.add(project)
+    session.commit()
+    session.refresh(project)
+
+    return ProjectCreateResponse(
+        project=ProjectResponse(
+            id=project.id,
+            workspace_id=project.workspace_id,
+            key=project.key,
+            name=project.name,
+            created_at=project.created_at,
+            updated_at=project.updated_at,
+        )
     )
 
 
@@ -166,6 +277,112 @@ def _workflow_definition_not_found_error() -> ProjectApiErrorResponse:
         message="Assigned workflow definition was not found or is inaccessible.",
         correlation_id=str(uuid4()),
     )
+
+
+def _validate_project_request(
+    key: str | None,
+    name: str | None,
+) -> tuple[str | None, str | None, JSONResponse | None]:
+    if key is None or key.strip() == "":
+        return (
+            None,
+            None,
+            _project_error_response(
+                status.HTTP_400_BAD_REQUEST,
+                error_code="invalid_project_key",
+                message="Project key is required.",
+                field_errors={"key": ["Enter a project key."]},
+            ),
+        )
+
+    normalized_key = key.strip().upper()
+    if len(normalized_key) < 2:
+        return (
+            None,
+            None,
+            _project_error_response(
+                status.HTTP_400_BAD_REQUEST,
+                error_code="invalid_project_key",
+                message="Project key must be at least 2 characters.",
+                field_errors={"key": ["Use at least 2 characters."]},
+            ),
+        )
+    if len(normalized_key) > 32:
+        return (
+            None,
+            None,
+            _project_error_response(
+                status.HTTP_400_BAD_REQUEST,
+                error_code="invalid_project_key",
+                message="Project key must be 32 characters or fewer.",
+                field_errors={"key": ["Use 32 characters or fewer."]},
+            ),
+        )
+    if PROJECT_KEY_PATTERN.fullmatch(normalized_key) is None:
+        return (
+            None,
+            None,
+            _project_error_response(
+                status.HTTP_400_BAD_REQUEST,
+                error_code="invalid_project_key",
+                message="Project key must use letters, numbers, or hyphens.",
+                field_errors={"key": ["Use letters, numbers, or hyphens only."]},
+            ),
+        )
+
+    if name is None or name.strip() == "":
+        return (
+            None,
+            None,
+            _project_error_response(
+                status.HTTP_400_BAD_REQUEST,
+                error_code="invalid_project_name",
+                message="Project name is required.",
+                field_errors={"name": ["Enter a project name."]},
+            ),
+        )
+
+    normalized_name = name.strip()
+    if len(normalized_name) < 3:
+        return (
+            None,
+            None,
+            _project_error_response(
+                status.HTTP_400_BAD_REQUEST,
+                error_code="invalid_project_name",
+                message="Project name must be at least 3 characters.",
+                field_errors={"name": ["Use at least 3 characters."]},
+            ),
+        )
+    if len(normalized_name) > 255:
+        return (
+            None,
+            None,
+            _project_error_response(
+                status.HTTP_400_BAD_REQUEST,
+                error_code="invalid_project_name",
+                message="Project name must be 255 characters or fewer.",
+                field_errors={"name": ["Use 255 characters or fewer."]},
+            ),
+        )
+
+    return normalized_key, normalized_name, None
+
+
+def _project_error_response(
+    http_status: int,
+    *,
+    error_code: str,
+    message: str,
+    field_errors: dict[str, list[str]] | None = None,
+) -> JSONResponse:
+    error = ProjectApiErrorResponse(
+        error_code=error_code,
+        message=message,
+        correlation_id=str(uuid4()),
+        field_errors=field_errors or {},
+    )
+    return JSONResponse(status_code=http_status, content=error.model_dump())
 
 
 @router.get(

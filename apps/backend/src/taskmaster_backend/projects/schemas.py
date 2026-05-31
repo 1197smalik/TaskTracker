@@ -39,6 +39,24 @@ class ProjectNavigationListResponse(BaseModel):
     items: list[ProjectNavigationResponse]
 
 
+class ProjectCreateRequest(BaseModel):
+    key: str
+    name: str
+
+
+class ProjectResponse(BaseModel):
+    id: str
+    workspace_id: str
+    key: str
+    name: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProjectCreateResponse(BaseModel):
+    project: ProjectResponse
+
+
 class ProjectLabelCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=255)
 

@@ -1,3 +1,4 @@
+export { ProjectCreatePage } from "./ProjectCreatePage";
 export {
   ProjectShellPage,
   WorkspaceHomePage,

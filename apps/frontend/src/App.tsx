@@ -17,6 +17,7 @@ import {
 import { LoginPage } from "./identity/LoginPage";
 import { OrganizationCreatePage } from "./organizations";
 import {
+  ProjectCreatePage,
   ProjectShellPage,
   WorkspaceHomePage,
   createEmptyWorkspaceProjectNavigation,
@@ -201,6 +202,43 @@ export function App() {
     );
   };
 
+  const handleProjectCreated = async (project: {
+    id: string;
+    workspaceId: string;
+    key: string;
+    name: string;
+  }) => {
+    try {
+      const projects = await fetchProjectNavigation(apiClient, project.workspaceId);
+      setProjectNavigation((currentNavigation) => ({
+        status: "ready",
+        selectedWorkspaceId: project.workspaceId,
+        selectedProjectId: project.id,
+        workspaces:
+          currentNavigation.status === "ready" ? currentNavigation.workspaces : [],
+        projects,
+      }));
+    } catch {
+      setProjectNavigation((currentNavigation) => ({
+        status: "ready",
+        selectedWorkspaceId: project.workspaceId,
+        selectedProjectId: project.id,
+        workspaces:
+          currentNavigation.status === "ready" ? currentNavigation.workspaces : [],
+        projects:
+          currentNavigation.status === "ready" &&
+          currentNavigation.selectedWorkspaceId === project.workspaceId
+            ? [
+                ...currentNavigation.projects.filter(
+                  (currentProject) => currentProject.id !== project.id
+                ),
+                project,
+              ].sort((left, right) => left.key.localeCompare(right.key))
+            : [project],
+      }));
+    }
+  };
+
   const handleLogin = async (email: string, password: string) => {
     setIsLoggingIn(true);
     try {
@@ -257,6 +295,16 @@ export function App() {
             <OrganizationCreatePage
               apiClient={apiClient}
               isAuthenticated={isAuthenticatedSession(session)}
+            />
+          }
+        />
+        <Route
+          path="/workspaces/:workspaceId/projects/new"
+          element={
+            <ProjectCreatePage
+              apiClient={apiClient}
+              isAuthenticated={isAuthenticatedSession(session)}
+              onProjectCreated={handleProjectCreated}
             />
           }
         />
