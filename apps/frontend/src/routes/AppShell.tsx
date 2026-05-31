@@ -42,6 +42,9 @@ export function AppShell({
         <Link to="/workspace">TaskMaster</Link>
         <nav aria-label="Primary navigation">
           <Link to="/workspace">Workspace</Link>
+          {isAuthenticatedSession(session) ? (
+            <Link to="/organizations/new">Create organization</Link>
+          ) : null}
           {!isAuthenticatedSession(session) ? <Link to="/login">Sign in</Link> : null}
         </nav>
         <section aria-label="Authentication session">

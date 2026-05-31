@@ -8,12 +8,14 @@ import {
   createAnonymousSession,
   clearStoredRefreshToken,
   getRefreshDelay,
+  isAuthenticatedSession,
   login,
   logout,
   readStoredRefreshToken,
   refreshSession,
 } from "./identity/session";
 import { LoginPage } from "./identity/LoginPage";
+import { OrganizationCreatePage } from "./organizations";
 import {
   ProjectShellPage,
   WorkspaceHomePage,
@@ -246,6 +248,15 @@ export function App() {
               isSubmitting={isLoggingIn}
               onLogin={handleLogin}
               session={session}
+            />
+          }
+        />
+        <Route
+          path="/organizations/new"
+          element={
+            <OrganizationCreatePage
+              apiClient={apiClient}
+              isAuthenticated={isAuthenticatedSession(session)}
             />
           }
         />
