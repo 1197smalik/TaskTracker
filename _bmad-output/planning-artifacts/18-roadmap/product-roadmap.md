@@ -18,6 +18,7 @@
 - Generic work items.
 - Comments/activity.
 - Basic notifications.
+- Corrective closure track `P1C` completes real auth/session behavior, authenticated frontend API usage, creation flows, usable work item screens, and a local demo/E2E acceptance path without expanding into Phase 2 scope.
 
 ## Phase 2: Workflow and Enterprise Controls
 - Workflow definitions.

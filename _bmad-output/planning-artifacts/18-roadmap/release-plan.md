@@ -16,6 +16,7 @@ Exit criteria:
 - Login/refresh/logout.
 - Organization/workspace/project creation.
 - RBAC enforced.
+- Corrective P1C closure stories for real auth/session and authenticated creation flows are complete.
 
 ## Release 0.3: Work Item and Workflow Alpha
 Exit criteria:
@@ -23,6 +24,7 @@ Exit criteria:
 - Workflow states/transitions.
 - Transition validation.
 - Audit/event outbox.
+- Frontend work item list, detail, board, and create/update flows are wired to real backend APIs.
 
 ## Release 0.4: Collaboration Beta
 Exit criteria:
@@ -31,6 +33,7 @@ Exit criteria:
 - Notifications.
 - Activity feed.
 - Frontend usable lifecycle.
+- Phase 1 closure E2E path passes against documented local demo seed or equivalent documented setup.
 
 ## Release 0.5: Integration Beta
 Exit criteria:

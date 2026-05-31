@@ -949,3 +949,139 @@ Each story is intentionally small enough for autonomous execution, review, and r
 - The architecture summary reflects actual implementation rather than planned-only design.
 - No major implemented subsystem through TM-100 remains undocumented in `README.md`.
 **Validation Commands:** `markdown lint if available && link/reference validation if available && git diff --check README.md`
+
+## Corrective Closure Tracks
+### P1C: Phase 1 Closure - Make TaskMaster actually usable
+Purpose: close the gap between Phase 1 release intent and the currently mapped implementation by finishing real auth/session behavior, authenticated frontend API usage, creation flows, usable work item screens, and a local demo path. This track is corrective only and must not expand scope into Phase 2 features.
+
+### P1C-001: Implement real login refresh logout behavior
+**Estimate:** 30-90 minutes
+**Dependencies:** TM-020, TM-021, TM-022, TM-024, TM-084
+**Acceptance Criteria:**
+- Login uses the real backend auth endpoints rather than placeholder or shell-only behavior.
+- Refresh token handling renews the frontend session without forcing a full re-login during valid session continuity.
+- Logout/revocation clears client session state and invalidates the server-side refresh path exposed to the client.
+- Auth error handling distinguishes invalid credentials, expired session, and revoked-session behavior well enough for Phase 1 UX completion.
+- No SSO, password reset, MFA, or other Phase 2+ identity features are introduced.
+**Validation Commands:** `pytest tests/api/test_auth_login.py tests/api/test_auth_refresh.py tests/api/test_auth_logout.py && npm run test -- auth && npx playwright test --grep auth`
+
+### P1C-002: Implement frontend authenticated API client
+**Estimate:** 30-90 minutes
+**Dependencies:** P1C-001, TM-084, TM-090A
+**Acceptance Criteria:**
+- Frontend API calls use a single authenticated client abstraction rather than per-page ad hoc auth handling.
+- The client attaches access credentials consistently for protected backend requests.
+- The client performs refresh-and-retry behavior for recoverable expired-session cases without duplicating logic across screens.
+- Unauthorized and forbidden responses surface through backend-driven permission/session outcomes instead of frontend-invented workflow rules.
+- The client remains scoped to Phase 1 APIs and does not add speculative SDK layers or multi-tenant abstractions beyond current needs.
+**Validation Commands:** `npm run lint && npm run typecheck && npm run test -- api-client`
+
+### P1C-003: Create organization creation endpoint and UI shell
+**Estimate:** 30-90 minutes
+**Dependencies:** P1C-002, TM-009, TM-013, TM-024, TM-025, TM-085
+**Acceptance Criteria:**
+- A backend endpoint exists to create an organization using authenticated user context and Phase 1 validation rules.
+- A frontend shell exists for organization creation and submits through the authenticated API client.
+- Success flow returns enough backend state for the user to continue into workspace setup without manual data manipulation.
+- Validation and duplicate-name failures are displayed using backend response data.
+- Scope stays limited to single-organization creation flow needed for Phase 1 onboarding.
+**Validation Commands:** `pytest tests/api/test_organization_create.py && npm run test -- organization-create && npx playwright test --grep organization`
+
+### P1C-004: Create workspace creation endpoint and UI shell
+**Estimate:** 30-90 minutes
+**Dependencies:** P1C-003, TM-011, TM-013, TM-024, TM-025, TM-085, TM-090A
+**Acceptance Criteria:**
+- A backend endpoint exists to create a workspace within an authorized organization context.
+- A frontend shell exists for workspace creation and submits through the authenticated API client.
+- The response updates local frontend selection/navigation context so the created workspace becomes usable immediately.
+- Unauthorized organization membership or invalid parent context is rejected by backend authorization/validation rules.
+- Scope excludes advanced workspace settings and remains limited to Phase 1 creation flow.
+**Validation Commands:** `pytest tests/api/test_workspace_create.py && npm run test -- workspace-create && npx playwright test --grep workspace`
+
+### P1C-005: Create project creation endpoint and UI shell
+**Estimate:** 30-90 minutes
+**Dependencies:** P1C-004, TM-026, TM-024, TM-025, TM-085, TM-090A
+**Acceptance Criteria:**
+- A backend endpoint exists to create a project within an authorized workspace context.
+- A frontend shell exists for project creation and submits through the authenticated API client.
+- The created project is added to the frontend navigation context without requiring hardcoded or manual selection steps.
+- Backend validation handles invalid workspace scope, duplicate-name constraints, and membership authorization.
+- Scope excludes Phase 2 project administration capabilities and remains limited to initial creation flow.
+**Validation Commands:** `pytest tests/api/test_project_create.py && npm run test -- project-create && npx playwright test --grep project`
+
+### P1C-006: Apply membership RBAC filtering to workspace project lists
+**Estimate:** 30-90 minutes
+**Dependencies:** P1C-004, P1C-005, TM-023, TM-025
+**Acceptance Criteria:**
+- Workspace and project list responses are filtered by effective membership/RBAC rules rather than returning unscoped data.
+- Frontend list views consume only backend-filtered results and do not implement permission logic on their own.
+- Unauthorized resources are omitted or denied consistently across list and selection flows.
+- Tests cover positive membership visibility and negative cross-scope access cases.
+- Scope excludes Phase 2 advanced role management and remains limited to Phase 1 list visibility enforcement.
+**Validation Commands:** `pytest tests/rbac tests/api/test_workspace_project_visibility.py && npx playwright test --grep rbac`
+
+### P1C-007: Wire frontend work item list to backend API
+**Estimate:** 30-90 minutes
+**Dependencies:** P1C-002, P1C-005, P1C-006, TM-039, TM-086, TM-090A
+**Acceptance Criteria:**
+- The work item list page loads real backend project-scoped data through the authenticated API client.
+- Loading, empty, and error states are handled using actual backend responses.
+- The selected workspace/project context drives which list data is requested.
+- Frontend no longer relies on stubbed or static work item list content for the Phase 1 path.
+- Scope stays limited to Phase 1 list retrieval and does not add advanced search/filter features beyond existing contracts.
+**Validation Commands:** `pytest tests/api/test_work_item_list.py && npm run test -- work-item-list && npx playwright test --grep \"work item list\"`
+
+### P1C-008: Wire frontend work item detail to backend API
+**Estimate:** 30-90 minutes
+**Dependencies:** P1C-002, P1C-007, TM-038, TM-087
+**Acceptance Criteria:**
+- The work item detail page loads real backend data for the selected item.
+- Detail rendering handles missing, unauthorized, and stale selection cases using backend outcomes.
+- Navigation from the real list view into detail view works without mock data.
+- Frontend displays backend-provided workflow/state information rather than inventing client-side state truth.
+- Scope excludes Phase 2 analytics or cross-project detail experiences.
+**Validation Commands:** `pytest tests/api/test_work_item_detail.py && npm run test -- work-item-detail && npx playwright test --grep \"work item detail\"`
+
+### P1C-009: Wire frontend board to backend workflow and work item APIs
+**Estimate:** 30-90 minutes
+**Dependencies:** P1C-002, P1C-007, P1C-008, TM-047, TM-048, TM-049, TM-089
+**Acceptance Criteria:**
+- The board loads columns and cards from backend workflow/work item data for the active project.
+- Transition actions use the backend workflow transition API and reflect backend validation failures to the user.
+- The frontend board no longer depends on placeholder card or status data for the Phase 1 flow.
+- Workflow state ordering and move eligibility are backend-driven.
+- Scope excludes realtime collaboration or advanced board customization beyond Phase 1 usability.
+**Validation Commands:** `pytest tests/api/test_work_item_transition.py tests/workflow && npm run test -- board && npx playwright test --grep board`
+
+### P1C-010: Add frontend work item create update flows
+**Estimate:** 30-90 minutes
+**Dependencies:** P1C-002, P1C-007, P1C-008, TM-037, TM-040
+**Acceptance Criteria:**
+- Users can create and update work items from the frontend against the real backend APIs.
+- Forms handle backend validation errors and optimistic version conflicts in a user-visible Phase 1-safe manner.
+- Successful create/update operations refresh affected list/detail views without manual page surgery.
+- Create/update flows use the generic work item model already planned rather than introducing type-specific frontend forms.
+- Scope excludes bulk edit, automation, and other post-Phase-1 authoring features.
+**Validation Commands:** `pytest tests/api/test_work_item_create.py tests/api/test_work_item_update.py && npm run test -- work-item-form && npx playwright test --grep \"work item create|work item update\"`
+
+### P1C-011: Add local demo seed command
+**Estimate:** 30-90 minutes
+**Dependencies:** P1C-001, P1C-003, P1C-004, P1C-005, P1C-009, P1C-010, DOC-001
+**Acceptance Criteria:**
+- A documented local command seeds a minimal Phase 1 demo environment with at least one usable user, organization, workspace, project, workflow, and representative work items.
+- Seeded data is compatible with the real login and frontend flows defined in the P1C track.
+- The command is safe for local/demo usage and clearly separated from production data handling assumptions.
+- Developer onboarding docs identify when and how to use the demo seed path.
+- Scope excludes synthetic scale/performance data generation and multi-tenant fixture complexity.
+**Validation Commands:** `documented local demo seed command executes successfully && docker compose up -d && npx playwright test --grep smoke`
+
+### P1C-012: Add Phase 1 closure acceptance E2E test
+**Estimate:** 30-90 minutes
+**Dependencies:** P1C-001, P1C-002, P1C-003, P1C-004, P1C-005, P1C-006, P1C-007, P1C-008, P1C-009, P1C-010, P1C-011, TM-090, TM-100
+**Acceptance Criteria:**
+- One end-to-end acceptance path covers real login, authenticated navigation, organization/workspace/project creation or seeded access, work item list/detail usage, board interaction, and create/update behavior.
+- The test proves the Phase 1 product is usable without hidden manual setup beyond the documented seed/onboarding path.
+- Failures in auth, RBAC, list/detail wiring, or board transitions are observable from this acceptance flow.
+- The test is corrective to Phase 1 closure and does not expand into collaboration, integrations, or enterprise roadmap areas.
+- Release-plan references are updated so this E2E path is an explicit Phase 1 closure gate.
+**Validation Commands:** `docker compose up -d && documented local demo seed command && npx playwright test --grep \"phase 1 closure\"`
