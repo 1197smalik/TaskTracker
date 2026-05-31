@@ -38,11 +38,13 @@ Execute one story per branch. Keep branches small. Do not combine unrelated stor
   10. P1C-009 board workflow/API wiring
   11. P1C-010 work item create/update flows
   12. P1C-011 local demo seed command
-  13. P1C-012 Phase 1 closure acceptance E2E test
+  13. P1C-011A production-safe local bootstrap startup flow
+  14. P1C-012 Phase 1 closure acceptance E2E test
 - P1C stories remain within Phase 1 closure only. They must not pull collaboration, integrations, SSO, advanced workflow administration, or other Phase 2+ scope into the branch.
 - P1C-003A is a required bridge story. P1C-004 must not proceed until organization creator ownership or membership exists, because workspace authorization and later RBAC filtering otherwise have no evaluable organization scope.
 - P1C-003A should include a reversible migration or deterministic backfill strategy for organizations created by P1C-003 before ownership or membership persistence existed.
 - P1C-011 should not land before the core P1C flows it demonstrates, or the seed path will freeze around placeholders instead of real behavior.
+- P1C-011A is required before P1C-012 so the closure E2E path can validate first-run local bootstrap behavior from a fresh clone rather than relying on undocumented manual startup steps.
 - P1C-012 is the closure gate for Phase 1 usability and should be treated as a release-blocking story for the corrected Phase 1 plan.
 
 ## Parallelization Rules

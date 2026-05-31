@@ -1090,9 +1090,25 @@ Purpose: close the gap between Phase 1 release intent and the currently mapped i
 - Scope excludes synthetic scale/performance data generation and multi-tenant fixture complexity.
 **Validation Commands:** `documented local demo seed command executes successfully && docker compose up -d && npx playwright test --grep smoke`
 
+### P1C-011A: Add production-safe local bootstrap startup flow
+**Estimate:** 30-90 minutes
+**Dependencies:** P1C-001, P1C-003, P1C-003A, P1C-004, P1C-005, P1C-009, P1C-010, P1C-011, DOC-001
+**Acceptance Criteria:**
+- A fresh local clone can be started with `docker compose up --build` and reach a usable login state without requiring a separate manual seed command.
+- Database migrations are applied automatically through startup orchestration or a compose-managed bootstrap mechanism before the application is considered ready.
+- Minimal demo data exists for first-run local usage: demo user, demo organization, demo workspace, and demo project.
+- Bootstrap behavior is idempotent.
+- Bootstrap behavior is explicitly local/development only and not automatically enabled in production deployments.
+- Default demo credentials are documented.
+- The bootstrap process can be safely rerun.
+**Implementation Boundaries:**
+- Allowed: startup bootstrap orchestration, migration automation, demo seed automation, and onboarding documentation updates.
+- Not allowed: production auto-seeding, advanced tenant provisioning, invitation systems, user registration flows, organization management enhancements, or RBAC redesign.
+**Validation Commands:** `docker compose down -v && docker compose up --build && open application && login with documented credentials && navigate workspace/project shell && execute smoke validation`
+
 ### P1C-012: Add Phase 1 closure acceptance E2E test
 **Estimate:** 30-90 minutes
-**Dependencies:** P1C-001, P1C-002, P1C-003, P1C-003A, P1C-004, P1C-005, P1C-006, P1C-007, P1C-008, P1C-009, P1C-010, P1C-011, TM-090, TM-100
+**Dependencies:** P1C-001, P1C-002, P1C-003, P1C-003A, P1C-004, P1C-005, P1C-006, P1C-007, P1C-008, P1C-009, P1C-010, P1C-011, P1C-011A, TM-090, TM-100
 **Acceptance Criteria:**
 - One end-to-end acceptance path covers real login, authenticated navigation, organization/workspace/project creation or seeded access, work item list/detail usage, board interaction, and create/update behavior.
 - The test proves the Phase 1 product is usable without hidden manual setup beyond the documented seed/onboarding path.
