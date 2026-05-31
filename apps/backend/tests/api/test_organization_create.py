@@ -114,6 +114,7 @@ def test_create_organization_persists_trimmed_name_and_returns_typed_response(
 
     assert len(organizations) == 1
     assert organizations[0].name == "Acme Product"
+    assert organizations[0].owner_user_id == "user-123"
 
 
 def test_create_organization_returns_field_errors_for_invalid_name(

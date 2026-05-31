@@ -54,6 +54,12 @@ class Organization(Base):
         primary_key=True,
         default=lambda: str(uuid4()),
     )
+    owner_user_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("users.id"),
+        nullable=True,
+        index=True,
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -70,7 +70,7 @@ def create_organization(
             field_errors={"name": ["Choose a different organization name."]},
         )
 
-    organization = Organization(name=normalized_name)
+    organization = Organization(name=normalized_name, owner_user_id=actor.id)
     session.add(organization)
     session.commit()
     session.refresh(organization)

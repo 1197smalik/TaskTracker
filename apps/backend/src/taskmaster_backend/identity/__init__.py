@@ -14,6 +14,9 @@ from taskmaster_backend.identity.models import (
     User,
     Workspace,
 )
+from taskmaster_backend.identity.organization_ownership import (
+    backfill_organization_owners,
+)
 from taskmaster_backend.identity.permissions import (
     API_TOKEN_MANAGE_PERMISSION,
     api_token_management_requirement,
@@ -23,6 +26,7 @@ __all__ = [
     "ApiToken",
     "API_TOKEN_MANAGE_PERMISSION",
     "api_token_management_requirement",
+    "backfill_organization_owners",
     "generate_api_token",
     "hash_api_token",
     "Organization",
