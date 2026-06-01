@@ -166,13 +166,6 @@ def _resolve_visible_project(
     status_code=status.HTTP_201_CREATED,
     response_model=WorkItemResponse,
     responses={
-        status.HTTP_401_UNAUTHORIZED: {
-            "description": "Bearer access token is required.",
-        },
-        status.HTTP_403_FORBIDDEN: {
-            "model": WorkItemApiErrorResponse,
-            "description": "Project exists but is inaccessible.",
-        },
         status.HTTP_404_NOT_FOUND: {
             "model": WorkItemApiErrorResponse,
             "description": "Project was not found or is inaccessible.",
@@ -263,6 +256,13 @@ def create_project_work_item(
     "",
     response_model=WorkItemListResponse,
     responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Bearer access token is required.",
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": WorkItemApiErrorResponse,
+            "description": "Project exists but is inaccessible.",
+        },
         status.HTTP_404_NOT_FOUND: {
             "model": WorkItemApiErrorResponse,
             "description": "Project was not found or is inaccessible.",

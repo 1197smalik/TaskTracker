@@ -41,7 +41,11 @@ def _seed_projects_and_work_items(
     session_factory: sessionmaker[Session],
 ) -> tuple[str, str, str]:
     with session_factory() as session:
-        organization = Organization(id="org-1", name="Acme")
+        organization = Organization(
+            id="org-1",
+            name="Acme",
+            owner_user_id="user-owner-1",
+        )
         workspace = Workspace(id="workspace-1", organization_id="org-1", name="Platform")
         project_one = Project(
             id="project-1",
