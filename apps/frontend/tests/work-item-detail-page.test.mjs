@@ -8,6 +8,7 @@ test("work item detail API contract matches the backend detail route", async () 
   const apiSource = await readText("src/work-items/api.ts");
 
   assert.match(apiSource, /buildProjectWorkItemDetailUrl/);
+  assert.match(apiSource, /async function fetchProjectWorkItemDetail/);
   assert.match(
     apiSource,
     /\/api\/v1\/projects\/\$\{encodeURIComponent\(projectId\)\}\/work-items\/\$\{encodeURIComponent\(workItemId\)\}/
@@ -36,18 +37,19 @@ test("work item detail API contract matches the backend detail route", async () 
   );
 });
 
-test("work item detail page exposes a backend-owned transition control shell", async () => {
+test("work item detail page loads backend detail states and keeps transition behavior scoped", async () => {
   const pageSource = await readText("src/work-items/WorkItemDetailPage.tsx");
   const appSource = await readText("src/App.tsx");
   const listSource = await readText("src/work-items/WorkItemListPage.tsx");
 
-  assert.match(pageSource, /status: "not_configured"/);
+  assert.match(pageSource, /status: "loading"/);
+  assert.match(pageSource, /status: "failed"/);
+  assert.match(pageSource, /fetchProjectWorkItemDetail\(apiClient, projectId, workItemId\)/);
+  assert.match(pageSource, /Loading work item detail from the backend\./);
+  assert.match(pageSource, /Sign in to load work item detail\./);
+  assert.match(pageSource, /This work item was not found\./);
   assert.match(pageSource, /Project work item detail/);
   assert.match(pageSource, /Detail contract:/);
-  assert.match(
-    pageSource,
-    /does not infer comment,\s+activity,\s+attachment,\s+or workflow\s+capabilities/
-  );
   assert.match(
     pageSource,
     /Transition contract:/
@@ -97,6 +99,10 @@ test("work item detail page exposes a backend-owned transition control shell", a
   assert.match(
     appSource,
     /\/workspace\/:workspaceId\/projects\/:projectId\/work-items\/:workItemId/
+  );
+  assert.match(
+    appSource,
+    /<WorkItemDetailPage\s+apiClient=\{apiClient\}\s+sessionStatus=\{session\.status\}\s+\/>/
   );
   assert.match(listSource, /buildProjectWorkItemDetailPath/);
 });

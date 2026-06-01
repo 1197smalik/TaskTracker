@@ -393,7 +393,12 @@ export function App() {
         />
         <Route
           path="/workspace/:workspaceId/projects/:projectId/work-items/:workItemId"
-          element={<WorkItemDetailPage apiClient={apiClient} />}
+          element={
+            <WorkItemDetailPage
+              apiClient={apiClient}
+              sessionStatus={session.status}
+            />
+          }
         />
       </Route>
     </Routes>

@@ -8,6 +8,7 @@ from sqlalchemy.pool import StaticPool
 
 from taskmaster_backend.app import create_app
 from taskmaster_backend.db.base import Base
+from taskmaster_backend.identity.dependencies import AuthenticatedPrincipal
 from taskmaster_backend.identity.models import Organization, Workspace
 from taskmaster_backend.projects.models import Project
 from taskmaster_backend.work_items.models import WorkItem
@@ -25,11 +26,24 @@ def _create_test_session_factory() -> sessionmaker[Session]:
     return sessionmaker(bind=engine, autoflush=False, expire_on_commit=False, class_=Session)
 
 
+def _principal(subject: str = "user-owner-1") -> AuthenticatedPrincipal:
+    return AuthenticatedPrincipal(
+        subject=subject,
+        issuer="test-issuer",
+        audience="test-audience",
+        expires_at=4_102_444_800,
+    )
+
+
 def _seed_projects_and_work_items(
     session_factory: sessionmaker[Session],
 ) -> tuple[str, str, str, str]:
     with session_factory() as session:
-        organization = Organization(id="org-1", name="Acme")
+        organization = Organization(
+            id="org-1",
+            name="Acme",
+            owner_user_id="user-owner-1",
+        )
         workspace = Workspace(id="workspace-1", organization_id="org-1", name="Platform")
         primary_project = Project(
             id="project-1",
@@ -101,6 +115,8 @@ def test_work_item_detail_route_openapi_contract_is_exposed() -> None:
 
     assert path_item["summary"] == "Get work item detail"
     assert "200" in path_item["responses"]
+    assert "401" in path_item["responses"]
+    assert "403" in path_item["responses"]
     assert "404" in path_item["responses"]
 
     components = openapi_schema["components"]["schemas"]
@@ -113,7 +129,12 @@ def test_work_item_detail_returns_existing_project_scoped_work_item() -> None:
     primary_project_id, _, primary_item_id, _ = _seed_projects_and_work_items(session_factory)
 
     with session_factory() as session:
-        response = get_project_work_item_detail(primary_project_id, primary_item_id, session)
+        response = get_project_work_item_detail(
+            primary_project_id,
+            primary_item_id,
+            session,
+            _principal(),
+        )
 
     assert isinstance(response, WorkItemResponse)
     assert response.id == primary_item_id
@@ -129,7 +150,12 @@ def test_work_item_detail_returns_not_found_for_missing_work_item() -> None:
     primary_project_id, _, _, _ = _seed_projects_and_work_items(session_factory)
 
     with session_factory() as session:
-        response = get_project_work_item_detail(primary_project_id, "missing-work-item", session)
+        response = get_project_work_item_detail(
+            primary_project_id,
+            "missing-work-item",
+            session,
+            _principal(),
+        )
 
     assert isinstance(response, JSONResponse)
     assert response.status_code == 404
@@ -141,7 +167,12 @@ def test_work_item_detail_does_not_return_item_from_another_project() -> None:
     primary_project_id, _, _, secondary_item_id = _seed_projects_and_work_items(session_factory)
 
     with session_factory() as session:
-        response = get_project_work_item_detail(primary_project_id, secondary_item_id, session)
+        response = get_project_work_item_detail(
+            primary_project_id,
+            secondary_item_id,
+            session,
+            _principal(),
+        )
 
     assert isinstance(response, JSONResponse)
     assert response.status_code == 404

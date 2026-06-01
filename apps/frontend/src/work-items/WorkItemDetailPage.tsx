@@ -1,9 +1,11 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import type { AuthenticatedApiClient } from "../identity/apiClient";
+import type { AuthSession } from "../identity/session";
 import {
   buildProjectWorkItemTransitionUrl,
+  fetchProjectWorkItemDetail,
   transitionProjectWorkItem,
   type WorkflowTransitionResponse,
   type WorkItemResponse,
@@ -13,24 +15,36 @@ import {
 
 type WorkItemDetailPageState =
   | {
-      status: "not_configured";
+      status: "loading";
       response: null;
+      message: string;
     }
   | {
       status: "ready";
       response: WorkItemResponse;
+      message: null;
+    }
+  | {
+      status: "failed";
+      response: null;
+      message: string;
     };
 
-const unloadedWorkItemDetailState: WorkItemDetailPageState = {
-  status: "not_configured",
+const loadingWorkItemDetailState: WorkItemDetailPageState = {
+  status: "loading",
   response: null,
+  message: "Loading work item detail from the backend.",
 };
 
 type WorkItemDetailPageProps = {
   apiClient: AuthenticatedApiClient;
+  sessionStatus: AuthSession["status"];
 };
 
-export function WorkItemDetailPage({ apiClient }: WorkItemDetailPageProps) {
+export function WorkItemDetailPage({
+  apiClient,
+  sessionStatus,
+}: WorkItemDetailPageProps) {
   const { workspaceId, projectId, workItemId } = useParams();
   const detailUrl =
     projectId === undefined || workItemId === undefined
@@ -44,6 +58,78 @@ export function WorkItemDetailPage({ apiClient }: WorkItemDetailPageProps) {
     projectId === undefined || workItemId === undefined
       ? null
       : buildProjectWorkItemTransitionUrl(projectId, workItemId);
+  const [state, setState] = useState<WorkItemDetailPageState>(
+    loadingWorkItemDetailState
+  );
+
+  useEffect(() => {
+    if (projectId === undefined || workItemId === undefined) {
+      setState({
+        status: "failed",
+        response: null,
+        message:
+          "Project and work item route context are required before loading detail.",
+      });
+      return;
+    }
+
+    if (sessionStatus === "checking") {
+      setState(loadingWorkItemDetailState);
+      return;
+    }
+
+    if (sessionStatus !== "authenticated") {
+      setState({
+        status: "failed",
+        response: null,
+        message: "Sign in to load work item detail.",
+      });
+      return;
+    }
+
+    let cancelled = false;
+    setState(loadingWorkItemDetailState);
+
+    void fetchProjectWorkItemDetail(apiClient, projectId, workItemId)
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+
+        if (result.status === "succeeded") {
+          setState({
+            status: "ready",
+            response: result.response,
+            message: null,
+          });
+          return;
+        }
+
+        setState({
+          status: "failed",
+          response: null,
+          message: describeWorkItemDetailFailure(
+            result.statusCode,
+            result.error?.message ?? null
+          ),
+        });
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+
+        setState({
+          status: "failed",
+          response: null,
+          message: describeWorkItemDetailRequestFailure(error),
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiClient, projectId, sessionStatus, workItemId]);
 
   return (
     <section aria-labelledby="work-item-detail-heading">
@@ -56,7 +142,7 @@ export function WorkItemDetailPage({ apiClient }: WorkItemDetailPageProps) {
         apiClient={apiClient}
         listPath={listPath}
         projectId={projectId}
-        state={unloadedWorkItemDetailState}
+        state={state}
         transitionUrl={transitionUrl}
         workItemId={workItemId}
         workspaceId={workspaceId}
@@ -84,14 +170,14 @@ export function WorkItemDetailView({
   workItemId,
   workspaceId,
 }: WorkItemDetailViewProps) {
-  if (state.status === "not_configured") {
+  if (state.status === "loading") {
+    return <p>{state.message}</p>;
+  }
+
+  if (state.status === "failed") {
     return (
       <>
-        <p>
-          Work item detail is waiting for an authenticated API client. This
-          page does not infer comment, activity, attachment, or workflow
-          capabilities.
-        </p>
+        <p>{state.message}</p>
         <WorkItemTransitionControl
           apiClient={apiClient}
           currentStateId={null}
@@ -149,6 +235,37 @@ export function WorkItemDetailView({
       {listPath !== null ? <Link to={listPath}>Return to list</Link> : null}
     </article>
   );
+}
+
+function describeWorkItemDetailFailure(
+  statusCode: number,
+  backendMessage: string | null
+): string {
+  if (backendMessage !== null && backendMessage !== "") {
+    return backendMessage;
+  }
+
+  switch (statusCode) {
+    case 401:
+      return "Your session is no longer valid. Sign in again to load work item detail.";
+    case 403:
+      return "You are not authorized to access this work item.";
+    case 404:
+      return "This work item was not found.";
+    default:
+      return "TaskMaster could not load work item detail from the backend.";
+  }
+}
+
+function describeWorkItemDetailRequestFailure(error: unknown): string {
+  if (
+    error instanceof Error &&
+    error.message === "Protected API requests require an authenticated session."
+  ) {
+    return "Sign in to load work item detail.";
+  }
+
+  return "TaskMaster could not load work item detail from the backend.";
 }
 
 type WorkItemTransitionControlProps = {

@@ -89,6 +89,17 @@ export type WorkItemListResult =
       error: WorkItemApiErrorResponse | null;
     };
 
+export type WorkItemDetailResult =
+  | {
+      status: "succeeded";
+      response: WorkItemResponse;
+    }
+  | {
+      status: "failed";
+      statusCode: number;
+      error: WorkItemApiErrorResponse | null;
+    };
+
 export function buildProjectWorkItemListUrl(
   projectId: string,
   params: WorkItemListParams
@@ -129,6 +140,31 @@ export function buildProjectWorkItemDetailUrl(
   workItemId: string
 ): string {
   return `/api/v1/projects/${encodeURIComponent(projectId)}/work-items/${encodeURIComponent(workItemId)}`;
+}
+
+export async function fetchProjectWorkItemDetail(
+  apiClient: AuthenticatedApiClient,
+  projectId: string,
+  workItemId: string
+): Promise<WorkItemDetailResult> {
+  const response = await apiClient.request(
+    buildProjectWorkItemDetailUrl(projectId, workItemId)
+  );
+
+  if (response.ok) {
+    const payload = (await response.json()) as WorkItemResponse;
+    return {
+      status: "succeeded",
+      response: payload,
+    };
+  }
+
+  const error = await parseWorkItemApiError(response);
+  return {
+    status: "failed",
+    statusCode: response.status,
+    error,
+  };
 }
 
 export function buildProjectWorkItemDetailPath(

@@ -23,6 +23,7 @@ from taskmaster_backend.db.session import get_db_session
 from taskmaster_backend.identity.dependencies import AuthenticatedPrincipal, get_current_principal
 from taskmaster_backend.identity.models import Organization, Workspace
 from taskmaster_backend.projects.models import Project
+from taskmaster_backend.work_items.models import WorkItem
 from taskmaster_backend.work_items.repository import (
     create_work_item,
     get_project,
@@ -159,6 +160,32 @@ def _resolve_visible_project(
         )
 
     return project, None
+
+
+def _resolve_visible_project_work_item(
+    session: Session,
+    project_id: str,
+    work_item_id: str,
+    principal_subject: str,
+) -> tuple[Project | None, WorkItem | None, JSONResponse | None]:
+    project, error_response = _resolve_visible_project(session, project_id, principal_subject)
+    if error_response is not None:
+        return None, None, error_response
+
+    assert project is not None
+    work_item = get_project_work_item(session, project.id, work_item_id)
+    if work_item is None:
+        error = _work_item_not_found_error()
+        return (
+            project,
+            None,
+            JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content=error.model_dump(),
+            ),
+        )
+
+    return project, work_item, None
 
 
 @router.post(
@@ -308,6 +335,13 @@ def list_project_work_items_route(
     "/{work_item_id}",
     response_model=WorkItemResponse,
     responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Bearer access token is required.",
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": WorkItemApiErrorResponse,
+            "description": "Project exists but is inaccessible.",
+        },
         status.HTTP_404_NOT_FOUND: {
             "model": WorkItemApiErrorResponse,
             "description": "Work item was not found or is inaccessible.",
@@ -324,14 +358,16 @@ def get_project_work_item_detail(
     project_id: str,
     work_item_id: str,
     session: Session = Depends(get_db_session),
+    principal: AuthenticatedPrincipal = Depends(get_current_principal),
 ) -> WorkItemResponse | JSONResponse:
-    work_item = get_project_work_item(session, project_id, work_item_id)
-    if work_item is None:
-        error = _work_item_not_found_error()
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content=error.model_dump(),
-        )
+    _, work_item, error_response = _resolve_visible_project_work_item(
+        session,
+        project_id,
+        work_item_id,
+        principal.subject,
+    )
+    if error_response is not None:
+        return error_response
 
     return WorkItemResponse.from_model(work_item)
 
