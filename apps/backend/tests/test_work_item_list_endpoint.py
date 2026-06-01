@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 
 from taskmaster_backend.app import create_app
 from taskmaster_backend.db.base import Base
+from taskmaster_backend.identity.dependencies import AuthenticatedPrincipal
 from taskmaster_backend.identity.models import Organization, Workspace
 from taskmaster_backend.projects.models import Project
 from taskmaster_backend.work_items.models import WorkItem
@@ -25,6 +26,15 @@ def _create_test_session_factory() -> sessionmaker[Session]:
     )
     Base.metadata.create_all(engine)
     return sessionmaker(bind=engine, autoflush=False, expire_on_commit=False, class_=Session)
+
+
+def _principal(subject: str = "user-owner-1") -> AuthenticatedPrincipal:
+    return AuthenticatedPrincipal(
+        subject=subject,
+        issuer="test-issuer",
+        audience="test-audience",
+        expires_at=4_102_444_800,
+    )
 
 
 def _seed_projects_and_work_items(
@@ -118,6 +128,8 @@ def test_work_item_list_route_openapi_contract_is_exposed() -> None:
 
     assert path_item["summary"] == "List work items"
     assert "200" in path_item["responses"]
+    assert "401" in path_item["responses"]
+    assert "403" in path_item["responses"]
     assert "404" in path_item["responses"]
     assert "422" in path_item["responses"]
 
@@ -140,7 +152,13 @@ def test_work_item_list_returns_only_project_items() -> None:
     _seed_empty_project(session_factory, empty_project_id)
 
     with session_factory() as session:
-        response = list_project_work_items_route(project_id, limit=50, offset=0, session=session)
+        response = list_project_work_items_route(
+            project_id,
+            limit=50,
+            offset=0,
+            session=session,
+            principal=_principal(),
+        )
 
     assert isinstance(response, WorkItemListResponse)
     assert response.total == 3
@@ -164,6 +182,7 @@ def test_work_item_list_returns_empty_list_for_project_with_no_items() -> None:
             limit=50,
             offset=0,
             session=session,
+            principal=_principal(),
         )
 
     assert isinstance(response, WorkItemListResponse)
@@ -178,7 +197,13 @@ def test_work_item_list_applies_limit_and_offset_pagination() -> None:
     project_id, _, _ = _seed_projects_and_work_items(session_factory)
 
     with session_factory() as session:
-        response = list_project_work_items_route(project_id, limit=2, offset=1, session=session)
+        response = list_project_work_items_route(
+            project_id,
+            limit=2,
+            offset=1,
+            session=session,
+            principal=_principal(),
+        )
 
     assert isinstance(response, WorkItemListResponse)
     assert response.total == 3
@@ -197,6 +222,7 @@ def test_work_item_list_maintains_cross_project_isolation() -> None:
             limit=50,
             offset=0,
             session=session,
+            principal=_principal(),
         )
 
     assert isinstance(response, WorkItemListResponse)
@@ -224,6 +250,7 @@ def test_work_item_list_returns_not_found_for_missing_project() -> None:
             limit=50,
             offset=0,
             session=session,
+            principal=_principal(),
         )
 
     assert isinstance(response, JSONResponse)

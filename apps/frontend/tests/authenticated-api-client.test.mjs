@@ -23,6 +23,7 @@ test("app and protected callsites route through the authenticated api client", a
   assert.match(appSource, /createAuthenticatedApiClient/);
   assert.match(appSource, /fetchWorkspaceNavigation\(apiClient\)/);
   assert.match(appSource, /fetchProjectNavigation\(apiClient, projectNavigation\.selectedWorkspaceId\)/);
+  assert.match(appSource, /<WorkItemListPage apiClient=\{apiClient\} sessionStatus=\{session\.status\} \/>/);
   assert.match(appSource, /<WorkItemBoardPage apiClient=\{apiClient\} \/>/);
   assert.match(appSource, /<WorkItemDetailPage apiClient=\{apiClient\} \/>/);
   assert.match(navigationSource, /apiClient\.getJson/);

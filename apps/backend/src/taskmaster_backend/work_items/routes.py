@@ -20,7 +20,9 @@ from taskmaster_backend.audit.service import (
     write_audit_log,
 )
 from taskmaster_backend.db.session import get_db_session
-from taskmaster_backend.identity.models import Workspace
+from taskmaster_backend.identity.dependencies import AuthenticatedPrincipal, get_current_principal
+from taskmaster_backend.identity.models import Organization, Workspace
+from taskmaster_backend.projects.models import Project
 from taskmaster_backend.work_items.repository import (
     create_work_item,
     get_project,
@@ -53,6 +55,14 @@ def _project_not_found_error() -> WorkItemApiErrorResponse:
     return WorkItemApiErrorResponse(
         error_code="project_not_found",
         message="Project was not found or is inaccessible.",
+        correlation_id=str(uuid4()),
+    )
+
+
+def _project_access_denied_error() -> WorkItemApiErrorResponse:
+    return WorkItemApiErrorResponse(
+        error_code="project_access_denied",
+        message="You are not authorized to access this project.",
         correlation_id=str(uuid4()),
     )
 
@@ -100,11 +110,69 @@ def _invalid_transition_error(
     )
 
 
+def _resolve_visible_project(
+    session: Session,
+    project_id: str,
+    principal_subject: str,
+) -> tuple[Project | None, JSONResponse | None]:
+    project = get_project(session, project_id)
+    if project is None:
+        error = _project_not_found_error()
+        return (
+            None,
+            JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content=error.model_dump(),
+            ),
+        )
+
+    workspace = session.get(Workspace, project.workspace_id)
+    if workspace is None:
+        error = _project_not_found_error()
+        return (
+            None,
+            JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content=error.model_dump(),
+            ),
+        )
+
+    organization = session.get(Organization, workspace.organization_id)
+    if organization is None:
+        error = _project_not_found_error()
+        return (
+            None,
+            JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content=error.model_dump(),
+            ),
+        )
+
+    if organization.owner_user_id != principal_subject:
+        error = _project_access_denied_error()
+        return (
+            None,
+            JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content=error.model_dump(),
+            ),
+        )
+
+    return project, None
+
+
 @router.post(
     "",
     status_code=status.HTTP_201_CREATED,
     response_model=WorkItemResponse,
     responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Bearer access token is required.",
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": WorkItemApiErrorResponse,
+            "description": "Project exists but is inaccessible.",
+        },
         status.HTTP_404_NOT_FOUND: {
             "model": WorkItemApiErrorResponse,
             "description": "Project was not found or is inaccessible.",
@@ -215,18 +283,16 @@ def list_project_work_items_route(
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
     session: Session = Depends(get_db_session),
+    principal: AuthenticatedPrincipal = Depends(get_current_principal),
 ) -> WorkItemListResponse | JSONResponse:
-    if get_project(session, project_id) is None:
-        error = _project_not_found_error()
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content=error.model_dump(),
-        )
+    project, error_response = _resolve_visible_project(session, project_id, principal.subject)
+    if error_response is not None:
+        return error_response
 
     pagination = WorkItemListParams(limit=limit, offset=offset)
     work_items, total = list_project_work_items(
         session,
-        project_id,
+        project.id,
         pagination.limit,
         pagination.offset,
     )

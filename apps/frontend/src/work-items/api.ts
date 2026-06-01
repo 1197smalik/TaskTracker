@@ -78,6 +78,17 @@ export type WorkItemTransitionResult =
       error: WorkItemApiErrorResponse | null;
     };
 
+export type WorkItemListResult =
+  | {
+      status: "succeeded";
+      response: WorkItemListResponse;
+    }
+  | {
+      status: "failed";
+      statusCode: number;
+      error: WorkItemApiErrorResponse | null;
+    };
+
 export function buildProjectWorkItemListUrl(
   projectId: string,
   params: WorkItemListParams
@@ -88,6 +99,29 @@ export function buildProjectWorkItemListUrl(
   });
 
   return `/api/v1/projects/${encodeURIComponent(projectId)}/work-items?${query}`;
+}
+
+export async function fetchProjectWorkItems(
+  apiClient: AuthenticatedApiClient,
+  projectId: string,
+  params: WorkItemListParams
+): Promise<WorkItemListResult> {
+  const response = await apiClient.request(buildProjectWorkItemListUrl(projectId, params));
+
+  if (response.ok) {
+    const payload = (await response.json()) as WorkItemListResponse;
+    return {
+      status: "succeeded",
+      response: payload,
+    };
+  }
+
+  const error = await parseWorkItemApiError(response);
+  return {
+    status: "failed",
+    statusCode: response.status,
+    error,
+  };
 }
 
 export function buildProjectWorkItemDetailUrl(
@@ -156,7 +190,7 @@ export async function transitionProjectWorkItem(
   };
 }
 
-async function parseWorkItemTransitionError(
+async function parseWorkItemApiError(
   response: Response
 ): Promise<WorkItemApiErrorResponse | null> {
   const contentType = response.headers.get("content-type");
@@ -165,4 +199,10 @@ async function parseWorkItemTransitionError(
   }
 
   return (await response.json()) as WorkItemApiErrorResponse;
+}
+
+async function parseWorkItemTransitionError(
+  response: Response
+): Promise<WorkItemApiErrorResponse | null> {
+  return parseWorkItemApiError(response);
 }
